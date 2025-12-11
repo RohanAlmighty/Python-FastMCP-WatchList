@@ -1,0 +1,15 @@
+[project]
+name = "watchlist-mcp-server"
+version = "0.1.0"
+description = "A Model Context Protocol (MCP) server for managing a movie watchlist, with tools, resources, and prompts for adding, updating, and querying movies."
+authors = [
+    { name = "rdutt27" }
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=1.23.3",
+]
+
+[project.scripts]
+watchlist-mcp-server = "watchlist_mcp_server.server:main"
