@@ -1,3 +1,4 @@
+
 # Database logic
 import sqlite3
 
@@ -11,7 +12,8 @@ def init_db():
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			title TEXT NOT NULL,
 			year INTEGER,
-			watched INTEGER DEFAULT 0
+			watched INTEGER DEFAULT 0,
+			rating REAL
 		)
 	""")
 	conn.commit()

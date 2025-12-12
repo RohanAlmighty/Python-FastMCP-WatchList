@@ -1,3 +1,4 @@
+
 # Prompt functions
 def prompt_add_movie(title: str, year: int) -> str:
 	"""Prompt to add a movie"""

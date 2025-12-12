@@ -1,5 +1,5 @@
 [project]
-name = "watchlist-mcp-server"
+name = "mcp-server-watchlist"
 version = "0.1.0"
 description = "A Model Context Protocol (MCP) server for managing a movie watchlist, with tools, resources, and prompts for adding, updating, and querying movies."
 authors = [
@@ -12,4 +12,4 @@ dependencies = [
 ]
 
 [project.scripts]
-watchlist-mcp-server = "watchlist_mcp_server.server:main"
+mcp-server-watchlist = "mcp_server_watchlist.server:main"

@@ -668,7 +668,7 @@ wheels = [
 ]
 
 [[package]]
-name = "watchlist-mcp-server"
+name = "mcp-server-watchlist"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -1,9 +1,9 @@
 # MCP server setup and registration
 from mcp.server.fastmcp import FastMCP
-from watchlist_mcp_server.db import init_db
-from watchlist_mcp_server.tools import add_movie, mark_watched, unwatch_movie, delete_movie
-from watchlist_mcp_server.resources import get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
-from watchlist_mcp_server.prompts import prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
+from mcp_server_watchlist.db import init_db
+from mcp_server_watchlist.tools import add_movie, mark_watched, unwatch_movie, delete_movie
+from mcp_server_watchlist.resources import get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
+from mcp_server_watchlist.prompts import prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
 
 mcp = FastMCP("Movie Watchlist MCP Server")
 
