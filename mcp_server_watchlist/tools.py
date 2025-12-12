@@ -4,7 +4,7 @@ import aiosqlite
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import Context
 from mcp.types import SamplingMessage, TextContent
-from resources import get_all_movies
+from mcp_server_watchlist.resources import get_all_movies
 
 async def summarize_watchlist(ctx: Context) -> str:
 	"""
