@@ -3,7 +3,7 @@ name = "mcp-server-watchlist"
 version = "0.1.0"
 description = "A Model Context Protocol (MCP) server for managing a movie watchlist, featuring LLM sampling for AI-generated summaries, interactive elicitation for user input, and tools/resources for adding, updating, and querying movies."
 authors = [
-    { name = "rdutt27" }
+    { name = "RohanAlmighty" }
 ]
 readme = "README.md"
 requires-python = ">=3.12"
