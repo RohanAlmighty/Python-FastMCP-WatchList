@@ -1,19 +1,30 @@
+
 # MCP server setup and registration
+import asyncio
 from mcp.server.fastmcp import FastMCP
 from mcp_server_watchlist.db import init_db
-from mcp_server_watchlist.tools import add_movie, mark_watched, unwatch_movie, delete_movie
-from mcp_server_watchlist.resources import get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
-from mcp_server_watchlist.prompts import prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
+from mcp_server_watchlist.tools import (
+	add_movie, mark_watched, unwatch_movie, delete_movie, summarize_watchlist
+)
+from mcp_server_watchlist.resources import (
+	get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
+)
+from mcp_server_watchlist.prompts import (
+	prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
+)
 
 mcp = FastMCP("Movie Watchlist MCP Server")
 
-init_db()
+
+# Ensure async DB initialization
+asyncio.run(init_db())
 
 # Register tool functions
 mcp.tool()(add_movie)
 mcp.tool()(mark_watched)
 mcp.tool()(unwatch_movie)
 mcp.tool()(delete_movie)
+mcp.tool()(summarize_watchlist)
 
 # Register resource functions
 mcp.resource("watchlist://{title}")(get_movie)

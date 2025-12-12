@@ -1,23 +1,18 @@
 
 # Database logic
-import sqlite3
+import aiosqlite
 
 DB_PATH = "watchlist.db"
 
-def init_db():
-	conn = sqlite3.connect(DB_PATH)
-	c = conn.cursor()
-	c.execute("""
-		CREATE TABLE IF NOT EXISTS watchlist (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT NOT NULL,
-			year INTEGER,
-			watched INTEGER DEFAULT 0,
-			rating REAL
-		)
-	""")
-	conn.commit()
-	conn.close()
-
-def get_db_connection():
-	return sqlite3.connect(DB_PATH)
+async def init_db():
+	async with aiosqlite.connect(DB_PATH) as conn:
+		await conn.execute("""
+			CREATE TABLE IF NOT EXISTS watchlist (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				title TEXT NOT NULL,
+				year INTEGER,
+				watched INTEGER DEFAULT 0,
+				rating REAL
+			)
+		""")
+		await conn.commit()

@@ -1,13 +1,14 @@
 [project]
 name = "mcp-server-watchlist"
 version = "0.1.0"
-description = "A Model Context Protocol (MCP) server for managing a movie watchlist, with tools, resources, and prompts for adding, updating, and querying movies."
+description = "A Model Context Protocol (MCP) server for managing a movie watchlist, featuring LLM sampling for AI-generated summaries, interactive elicitation for user input, and tools/resources for adding, updating, and querying movies."
 authors = [
     { name = "rdutt27" }
 ]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiosqlite>=0.21.0",
     "mcp[cli]>=1.23.3",
 ]
 
