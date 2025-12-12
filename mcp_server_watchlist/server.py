@@ -13,7 +13,7 @@ from mcp_server_watchlist.prompts import (
 	prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
 )
 
-mcp = FastMCP("Movie Watchlist MCP Server", port=8000)
+mcp = FastMCP("Movie Watchlist MCP Server", host="0.0.0.0", port=8000)
 
 
 # Ensure async DB initialization
