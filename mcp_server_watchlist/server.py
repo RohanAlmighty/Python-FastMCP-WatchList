@@ -13,7 +13,7 @@ from mcp_server_watchlist.prompts import (
 	prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
 )
 
-mcp = FastMCP("Movie Watchlist MCP Server")
+mcp = FastMCP("Movie Watchlist MCP Server", port=8000)
 
 
 # Ensure async DB initialization
@@ -39,7 +39,7 @@ mcp.prompt()(prompt_delete_movie)
 mcp.prompt()(prompt_mark_watched)
 
 def main():
-	mcp.run()
+	mcp.run(transport="streamable-http")
 
 if __name__ == "__main__":
 	main()
