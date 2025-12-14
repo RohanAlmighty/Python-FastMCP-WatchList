@@ -6,67 +6,47 @@ This project implements a Movie Watchlist Model Context Protocol (MCP) server us
 
 ---
 
+
 ## Features
 
 - **LLM Sampling:**
-	- Generate friendly, AI-powered summaries of your movie watchlist. The `summarize_watchlist` tool uses LLM sampling to send your movie list to a language model, which returns a brief, insightful summary. This can highlight genres, trends, or fun facts about your watchlist, making your experience more interactive and personalized.
+  - Generate friendly, AI-powered summaries of your movie watchlist. The `summarize_watchlist` tool uses LLM sampling to send your movie list to a language model, which returns a brief, insightful summary. This can highlight genres, trends, or fun facts about your watchlist, making your experience more interactive and personalized.
 
 - **Elicitation:**
-	- Collect additional information from the user when required. For example, when marking a movie as watched, the server will prompt the user to provide a rating for the movie (out of 10) using an elicitation flow. Elicitation is handled automatically by the MCP server and is highlighted in the `mark_watched` tool.
+  - Collect additional information from the user when required. For example, when marking a movie as watched, the server will prompt the user to provide a rating for the movie (out of 10) using an elicitation flow. Elicitation is handled automatically by the MCP server and is highlighted in the `mark_watched` tool.
 
 - **Database Schema:**
-	- Each movie has: `title` (str), `year` (int), `watched` (bool), and `rating` (float, optional, out of 10).
+  - Each movie has: `title` (str), `year` (int), `watched` (bool), and `rating` (float, optional, out of 10).
 
 - **Tools:**
-	- `add_movie(title: str, year: int)` — Add a movie to the watchlist.
-	- `mark_watched(title: str)` — Mark a movie as watched (**elicits a rating from the user**).
-	- `unwatch_movie(title: str)` — Mark a movie as unwatched (removes rating).
-	- `delete_movie(title: str)` — Delete a movie from the watchlist.
-	- `summarize_watchlist()` — Get a friendly, LLM-generated summary of your watchlist (**uses LLM sampling**).
+  - `add_movie(title: str, year: int)` — Add a movie to the watchlist.
+  - `mark_watched(title: str)` — Mark a movie as watched (**elicits a rating from the user**).
+  - `unwatch_movie(title: str)` — Mark a movie as unwatched (removes rating).
+  - `delete_movie(title: str)` — Delete a movie from the watchlist.
+  - `summarize_watchlist()` — Get a friendly, LLM-generated summary of your watchlist (**uses LLM sampling**).
 
 - **Resources:**
-	- `watchlist://{title}` — Get details of a movie by title.
-	- `watchlist://all` — Get all movies in the watchlist.
-	- `watchlist://unwatched` — Get all unwatched movies.
-	- `watchlist://watched` — Get all watched movies.
+  - `watchlist://{title}` — Get details of a movie by title.
+  - `watchlist://all` — Get all movies in the watchlist.
+  - `watchlist://unwatched` — Get all unwatched movies.
+  - `watchlist://watched` — Get all watched movies.
 
 - **Prompts:**
-	- `prompt_add_movie(title: str, year: int)` — Prompt to add a movie.
-	- `prompt_unwatch_movie(title: str)` — Prompt to mark a movie as unwatched.
-	- `prompt_delete_movie(title: str)` — Prompt to delete a movie.
-	- `prompt_mark_watched(title: str)` — Prompt to mark a movie as watched.
+  - `prompt_add_movie(title: str, year: int)` — Prompt to add a movie.
+  - `prompt_unwatch_movie(title: str)` — Prompt to mark a movie as unwatched.
+  - `prompt_delete_movie(title: str)` — Prompt to delete a movie.
+  - `prompt_mark_watched(title: str)` — Prompt to mark a movie as watched.
 
 All tools and resources return formatted strings with the movie's title, year, watched status, and rating (if available). Elicitation is used where additional user input is required, such as collecting a rating when marking a movie as watched.
 
----
-
-## Features
-
-- **Database Schema:**
-	- Each movie has: `title` (str), `year` (int), `watched` (bool), and `rating` (float, optional, out of 10).
-
-- **Tools:**
-	- `add_movie(title: str, year: int)` — Add a movie to the watchlist.
-	- `mark_watched(title: str)` — Mark a movie as watched. (**Uses elicitation to prompt the user for a rating.**)
-	- `unwatch_movie(title: str)` — Mark a movie as unwatched (removes rating).
-	- `delete_movie(title: str)` — Delete a movie from the watchlist.
-	- `summarize_watchlist()` — Get a friendly, LLM-generated summary of your watchlist. (**Uses MCP sampling.**)
-
-- **Resources:**
-	- `watchlist://{title}` — Get details of a movie by title.
-	- `watchlist://all` — Get all movies in the watchlist.
-	- `watchlist://unwatched` — Get all unwatched movies.
-	- `watchlist://watched` — Get all watched movies.
-
-- **Prompts:**
-	- `prompt_add_movie(title: str, year: int)` — Prompt to add a movie.
-	- `prompt_unwatch_movie(title: str)` — Prompt to mark a movie as unwatched.
-	- `prompt_delete_movie(title: str)` — Prompt to delete a movie.
-	- `prompt_mark_watched(title: str)` — Prompt to mark a movie as watched.
 
 
 
-All tools and resources return formatted strings with the movie's title, year, watched status, and rating (if available). Elicitation is used where additional user input is required, such as collecting a rating when marking a movie as watched.
+## Requirements
+
+- **Python**: 3.12 or newer (see `pyproject.toml`)
+- **Node.js**: Required for running the MCP Inspector (via `npx`). [Download Node.js](https://nodejs.org/)
+- **MCP CLI**: Installed automatically as a dependency (`mcp[cli]` in `pyproject.toml`)
 
 
 ## Getting Started
@@ -92,24 +72,40 @@ To install dependencies (from `pyproject.toml`, `uv.lock`, or `requirements.txt`
 uv sync
 ```
 
+
 ### 3. Install the package in editable mode
 
-Before running the server in development mode:
 ```bash
 uv pip install -e .
 ```
 
-### 4. Run the server
 
-To start the server in development mode (with hot reload):
+### 4. Run the server locally
+
+You can run the server using the module directly:
+
 ```bash
-uv run mcp dev mcp_server_watchlist/server.py
+python -m mcp_server_watchlist.server
 ```
 
-Or to run the installed script (if registered in `pyproject.toml`):
+Or, if you installed in editable mode, you can use the script entry point (as defined in `pyproject.toml`):
+
 ```bash
-uv run mcp-server-watchlist
+mcp-server-watchlist
 ```
+
+
+### 5. Open the MCP Inspector
+
+In a separate terminal, run:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+> **Note:** The Inspector requires Node.js. For more details, see the [MCP Inspector documentation](https://github.com/modelcontext/inspector).
+
+
 
 
 ## Endpoints & Testing
@@ -117,42 +113,66 @@ uv run mcp-server-watchlist
 You can test your MCP server using the **MCP Inspector**, a web interface for interacting with your tools, resources, and prompts.
 
 **How to use MCP Inspector:**
-1. Start the server in development mode:
-```bash
-uv run mcp dev mcp_server_watchlist/server.py
-```
-2. When the server starts, it will print a link to the MCP Inspector (e.g., `http://localhost:6274`). Open this link in your browser.
-3. Use the Inspector UI to invoke tools, resources, and prompts interactively. You can enter parameters and view results directly in the browser.
+1. Make sure your server is running and the Inspector is started (see Getting Started above).
+2. Open the Inspector UI (usually at http://localhost:6274) in your browser. Use it to invoke tools, resources, and prompts interactively.
 
 
 ---
 
+
+
 ## Sample VS Code MCP User Config
 
-To connect to this server from VS Code or other MCP-compatible clients, you can use a configuration like the following in your user or workspace settings:
+Depending on your setup, use one of the following configurations in your VS Code user or workspace settings:
+
+### 1. Local Setup (run your own server)
+Follow all steps in the **Getting Started** section above, then use this config:
 
 ```jsonc
 {
-	"servers": {
-		"mcp-server-watchlist-local": {
-			"type": "stdio",
-			"command": "uv",
-			"args": [
-				"run",
-				"--directory",
-				"/absolute/path/mcp_server_watchlist",
-				"mcp-server-watchlist"
-			]
-		},
-		"mcp-server-watchlist-http": {
-			"url": "https://python-fastmcp-watchlist.onrender.com/mcp/",
-			"type": "http"
-		}
-	},
-	"inputs": []
+  "servers": {
+    "mcp-server-watchlist-local": {
+      "url": "http://127.0.0.1:8000/mcp/",
+      "type": "http"
+    }
+  },
+  "inputs": []
 }
 ```
 
-Replace `/absolute/path/mcp_server_watchlist` with the absolute path to your `mcp_server_watchlist` directory on your system.
+### 2. Direct Use (hosted server, no setup required)
+If you want to use the hosted server directly, use this config:
 
-This configuration allows you to connect either to a local server (using stdio) or to the hosted HTTP endpoint.
+```jsonc
+{
+  "servers": {
+    "mcp-server-watchlist-remote": {
+      "url": "https://python-fastmcp-watchlist.onrender.com/mcp/",
+      "type": "http"
+    }
+  },
+  "inputs": []
+}
+```
+
+
+Use only the relevant section above based on whether you want to run the server locally or use the remote server.
+
+
+---
+
+
+## Troubleshooting & FAQ
+
+- **Inspector won't start:** Make sure Node.js is installed and available in your PATH. Try running `node -v` and `npx -v` to verify.
+- **Port 8000 already in use:** Stop any other process using port 8000 or change the port in your server code.
+- **Inspector UI not opening:** Ensure the Inspector process is running and check your browser for http://localhost:6274.
+- **Python version issues:** Ensure you are using Python 3.12 or newer (as required by `pyproject.toml`). Check with `python --version`.
+
+For more help, see the [FastMCP documentation](https://github.com/modelcontext/fastmcp) or open an issue in this repository.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
