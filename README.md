@@ -123,3 +123,36 @@ uv run mcp dev mcp_server_watchlist/server.py
 ```
 2. When the server starts, it will print a link to the MCP Inspector (e.g., `http://localhost:6274`). Open this link in your browser.
 3. Use the Inspector UI to invoke tools, resources, and prompts interactively. You can enter parameters and view results directly in the browser.
+
+
+---
+
+## Sample VS Code MCP User Config
+
+To connect to this server from VS Code or other MCP-compatible clients, you can use a configuration like the following in your user or workspace settings:
+
+```jsonc
+{
+	"servers": {
+		"mcp-server-watchlist-local": {
+			"type": "stdio",
+			"command": "uv",
+			"args": [
+				"run",
+				"--directory",
+				"/absolute/path/mcp_server_watchlist",
+				"mcp-server-watchlist"
+			]
+		},
+		"mcp-server-watchlist-http": {
+			"url": "https://python-fastmcp-watchlist.onrender.com/mcp/",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}
+```
+
+Replace `/absolute/path/mcp_server_watchlist` with the absolute path to your `mcp_server_watchlist` directory on your system.
+
+This configuration allows you to connect either to a local server (using stdio) or to the hosted HTTP endpoint.
