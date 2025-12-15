@@ -1,25 +1,32 @@
+"""Tests for server.py in mcp_server_watchlist."""
 
-# Tests for server.py
+from mcp_server_watchlist import server
+
 
 def test_import_server():
-    import mcp_server_watchlist.server as server
+    """Test that the server module can be imported and has a main function."""
     assert hasattr(server, "main")
 
-def test_server_main(monkeypatch):
-    import mcp_server_watchlist.server as server
-    called = {}
-    def fake_run(**kwargs):
-        called['run'] = True
-    server.mcp.run = fake_run
-    server.main()
-    assert called.get('run')
 
-def test_server_main_block(monkeypatch):
-    # Simulate __name__ == "__main__"
-    import mcp_server_watchlist.server as server
+def test_server_main(monkeypatch):
+    """Test that server.main calls mcp.run."""
     called = {}
-    def fake_run(*a, **kw):
-        called['run'] = True
+
+    def fake_run(**kwargs):
+        called["run"] = True
+
     monkeypatch.setattr(server.mcp, "run", fake_run)
     server.main()
-    assert called.get('run')
+    assert called.get("run")
+
+
+def test_server_main_block(monkeypatch):
+    """Test that server.main can be called as if __name__ == '__main__'."""
+    called = {}
+
+    def fake_run(**kwargs):
+        called["run"] = True
+
+    monkeypatch.setattr(server.mcp, "run", fake_run)
+    server.main()
+    assert called.get("run")

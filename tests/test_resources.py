@@ -1,5 +1,4 @@
-
-# Tests for resources.py
+"""Tests for resources.py in mcp_server_watchlist."""
 
 import pytest
 import aiosqlite
@@ -8,6 +7,7 @@ from mcp_server_watchlist import db, resources
 
 @pytest.mark.asyncio
 async def test_get_movie_and_all_movies(tmp_path):
+    """Test getting a movie and all movies from the database."""
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
@@ -26,6 +26,7 @@ async def test_get_movie_and_all_movies(tmp_path):
 
 @pytest.mark.asyncio
 async def test_get_movie_not_found(tmp_path):
+    """Test getting a movie that does not exist returns the correct message."""
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
@@ -36,6 +37,7 @@ async def test_get_movie_not_found(tmp_path):
 
 @pytest.mark.asyncio
 async def test_get_unwatched_and_watched_movies(tmp_path):
+    """Test getting unwatched and watched movies from the database."""
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
@@ -57,6 +59,7 @@ async def test_get_unwatched_and_watched_movies(tmp_path):
 
 
 def test_format_movie_row_variants():
+    """Test formatting of movie row variants."""
     row = ("TitleA", 2020, 1, 7.5)
     formatted = resources.format_movie_row(row)
     assert "Watched: Yes" in formatted and "Rating: 7.5" in formatted
