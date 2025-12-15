@@ -54,7 +54,8 @@ async def add_movie(title: str, year: int) -> str:
 		title: Movie name (exclude year)
 		year: Year of release
 	"""
-	async with aiosqlite.connect("watchlist.db") as conn:
+	from mcp_server_watchlist import db
+	async with aiosqlite.connect(db.DB_PATH) as conn:
 		await conn.execute("INSERT INTO watchlist (title, year) VALUES (?, ?)", (title, year))
 		await conn.commit()
 	# New movies have no rating by default
@@ -70,7 +71,8 @@ async def mark_watched(title: str, ctx: Context) -> str:
 		Pass only the movie name, not including the year. If the year is present, remove it before calling.
 		Use elicitation to get rating from the user.
 	"""
-	async with aiosqlite.connect("watchlist.db") as conn:
+	from mcp_server_watchlist import db
+	async with aiosqlite.connect(db.DB_PATH) as conn:
 		async with conn.execute("SELECT year FROM watchlist WHERE title = ?", (title,)) as cursor:
 			row = await cursor.fetchone()
 		if not row:
@@ -97,7 +99,8 @@ async def unwatch_movie(title: str) -> str:
 	Note:
 		Pass only the movie name, not including the year. If the year is present, remove it before calling.
 	"""
-	async with aiosqlite.connect("watchlist.db") as conn:
+	from mcp_server_watchlist import db
+	async with aiosqlite.connect(db.DB_PATH) as conn:
 		async with conn.execute("SELECT year, rating FROM watchlist WHERE title = ?", (title,)) as cursor:
 			row = await cursor.fetchone()
 		if not row:
@@ -117,7 +120,8 @@ async def delete_movie(title: str) -> str:
 	Note:
 		Pass only the movie name, not including the year. If the year is present, remove it before calling.
 	"""
-	async with aiosqlite.connect("watchlist.db") as conn:
+	from mcp_server_watchlist import db
+	async with aiosqlite.connect(db.DB_PATH) as conn:
 		async with conn.execute("SELECT year, rating FROM watchlist WHERE title = ?", (title,)) as cursor:
 			row = await cursor.fetchone()
 		if not row:

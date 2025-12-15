@@ -21,29 +21,33 @@ port = int(os.environ.get("PORT", 8000))
 mcp = FastMCP("Movie Watchlist MCP Server", host=host, port=port)
 
 
-# Ensure async DB initialization
-asyncio.run(init_db())
 
-# Register tool functions
-mcp.tool()(add_movie)
-mcp.tool()(mark_watched)
-mcp.tool()(unwatch_movie)
-mcp.tool()(delete_movie)
-mcp.tool()(summarize_watchlist)
+# Initialization and registration logic moved to a function for testability
+def setup_server():
+	# Ensure async DB initialization
+	asyncio.run(init_db())
 
-# Register resource functions
-mcp.resource("watchlist://{title}")(get_movie)
-mcp.resource("watchlist://all")(get_all_movies)
-mcp.resource("watchlist://unwatched")(get_unwatched_movies)
-mcp.resource("watchlist://watched")(get_watched_movies)
+	# Register tool functions
+	mcp.tool()(add_movie)
+	mcp.tool()(mark_watched)
+	mcp.tool()(unwatch_movie)
+	mcp.tool()(delete_movie)
+	mcp.tool()(summarize_watchlist)
 
-# Register prompt functions
-mcp.prompt()(prompt_add_movie)
-mcp.prompt()(prompt_unwatch_movie)
-mcp.prompt()(prompt_delete_movie)
-mcp.prompt()(prompt_mark_watched)
+	# Register resource functions
+	mcp.resource("watchlist://{title}")(get_movie)
+	mcp.resource("watchlist://all")(get_all_movies)
+	mcp.resource("watchlist://unwatched")(get_unwatched_movies)
+	mcp.resource("watchlist://watched")(get_watched_movies)
+
+	# Register prompt functions
+	mcp.prompt()(prompt_add_movie)
+	mcp.prompt()(prompt_unwatch_movie)
+	mcp.prompt()(prompt_delete_movie)
+	mcp.prompt()(prompt_mark_watched)
 
 def main():
+	setup_server()
 	mcp.run(transport="streamable-http")
 
 if __name__ == "__main__":
