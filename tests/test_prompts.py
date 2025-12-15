@@ -2,8 +2,8 @@
 # Tests for prompts.py
 from mcp_server_watchlist import prompts
 
-def test_prompt_add_movie():
-    assert prompts.prompt_add_movie("Inception", 2010) == "Add 'Inception' (2010) to your watchlist?"
+def test_prompt_add_movie(): 
+    assert prompts.prompt_add_movie("Inception", 2010) == "Add 'Inception' (2010) to your watchlist?" 
 
 def test_prompt_unwatch_movie():
     assert prompts.prompt_unwatch_movie("Inception") == "Mark 'Inception' as unwatched?"
