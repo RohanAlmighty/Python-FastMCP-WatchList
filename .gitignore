@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local database and coverage files
+watchlist.db
+.coverage
