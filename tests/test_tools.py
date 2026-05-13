@@ -210,7 +210,7 @@ async def test_summarize_watchlist_non_text_2(tmp_path):
 
 @pytest.mark.asyncio
 async def test_summarize_watchlist_exception(tmp_path):
-    """Test summarize_watchlist handles exceptions."""
+    """Test summarize_watchlist falls back to local summary on exception."""
     class DummyCtx:
         """Dummy context for session."""
         session = type(
@@ -233,5 +233,46 @@ async def test_summarize_watchlist_exception(tmp_path):
         return ["Movie"]
     tools.get_all_movies = staticmethod(async_movies)
     result = await tools.summarize_watchlist(DummyCtx())
-    assert "Failed to generate a summary" in result
+    assert "[Watchlist Summary]" in result
+    assert "You have 1 movie(s)" in result
+    tools.get_all_movies = orig
+
+
+@pytest.mark.asyncio
+async def test_summarize_watchlist_runtime_error_fallback(tmp_path):
+    """Test summarize_watchlist handles non-attribute runtime errors too."""
+
+    class DummySession:
+        """Dummy session that raises a generic runtime error."""
+
+        @staticmethod
+        async def create_message(*_args, **_kwargs):
+            raise RuntimeError("sampling backend unavailable")
+
+    class DummyCtx:
+        """Dummy context with session."""
+
+        session = DummySession()
+
+        def dummy_method(self):
+            """Dummy method to avoid too-few-public-methods warning."""
+            return None
+
+    test_db = tmp_path / "test_watchlist.db"
+    db.DB_PATH = str(test_db)
+    await db.init_db()
+
+    orig = tools.get_all_movies
+
+    async def async_movies():
+        return [
+            "Title: A, Year: 2000, Watched: Yes, Rating: 8.5",
+            "Title: B, Year: 2020, Watched: No, Rating: N/A",
+        ]
+
+    tools.get_all_movies = staticmethod(async_movies)
+    result = await tools.summarize_watchlist(DummyCtx())
+    assert "[Watchlist Summary]" in result
+    assert "2 movie(s): 1 watched and 1 unwatched" in result
+    assert "span from 2000 to 2020" in result
     tools.get_all_movies = orig

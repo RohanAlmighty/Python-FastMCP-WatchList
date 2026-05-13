@@ -1,5 +1,4 @@
 
-`
 # Watchlist MCP Server
 
 This project implements a Movie Watchlist Model Context Protocol (MCP) server using [FastMCP](https://github.com/modelcontext/fastmcp). It provides a simple API to manage a movie watchlist, including marking movies as watched/unwatched, adding ratings, retrieving lists of movies, and generating LLM-powered summaries of your watchlist.
