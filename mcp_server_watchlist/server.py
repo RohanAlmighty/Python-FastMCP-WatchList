@@ -3,6 +3,8 @@
 
 import os
 import asyncio
+import uvicorn
+from starlette.middleware.cors import CORSMiddleware
 
 from mcp.server.fastmcp import FastMCP
 from mcp_server_watchlist.db import init_db
@@ -45,10 +47,30 @@ def setup_server():
     mcp.prompt()(prompt_delete_movie)
     mcp.prompt()(prompt_mark_watched)
 
+
+def build_http_app():
+    """Build the ASGI app and add CORS support for browser-based MCP clients."""
+    app = mcp.streamable_http_app()
+
+    allow_origins_raw = os.environ.get("CORS_ALLOW_ORIGINS", "*")
+    allow_origins = [origin.strip() for origin in allow_origins_raw.split(",") if origin.strip()]
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allow_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["mcp-session-id"],
+        max_age=600,
+    )
+    return app
+
 def main():
     """Entry point for running the MCP server."""
     setup_server()
-    mcp.run(transport="streamable-http")
+    app = build_http_app()
+    uvicorn.run(app, host=HOST, port=PORT)
 
 if __name__ == "__main__":
     main()

@@ -9,24 +9,36 @@ def test_import_server():
 
 
 def test_server_main(monkeypatch):
-    """Test that server.main calls mcp.run."""
+    """Test that server.main starts the ASGI app with uvicorn."""
     called = {}
 
-    def fake_run(**kwargs):
-        called["run"] = True
+    def fake_build_http_app():
+        called["build_http_app"] = True
+        return object()
 
-    monkeypatch.setattr(server.mcp, "run", fake_run)
+    def fake_uvicorn_run(app, host, port):
+        called["uvicorn_run"] = (app, host, port)
+
+    monkeypatch.setattr(server, "build_http_app", fake_build_http_app)
+    monkeypatch.setattr(server.uvicorn, "run", fake_uvicorn_run)
     server.main()
-    assert called.get("run")
+    assert called.get("build_http_app")
+    assert "uvicorn_run" in called
 
 
 def test_server_main_block(monkeypatch):
     """Test that server.main can be called as if __name__ == '__main__'."""
     called = {}
 
-    def fake_run(**kwargs):
-        called["run"] = True
+    def fake_build_http_app():
+        called["build_http_app"] = True
+        return object()
 
-    monkeypatch.setattr(server.mcp, "run", fake_run)
+    def fake_uvicorn_run(app, host, port):
+        called["uvicorn_run"] = (app, host, port)
+
+    monkeypatch.setattr(server, "build_http_app", fake_build_http_app)
+    monkeypatch.setattr(server.uvicorn, "run", fake_uvicorn_run)
     server.main()
-    assert called.get("run")
+    assert called.get("build_http_app")
+    assert "uvicorn_run" in called
