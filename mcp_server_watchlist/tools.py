@@ -8,6 +8,34 @@ from mcp.types import SamplingMessage, TextContent
 from mcp_server_watchlist.resources import get_all_movies
 from mcp_server_watchlist import db
 
+
+def _build_local_summary(movies: list[str]) -> str:
+    """Build a deterministic summary when LLM sampling is unavailable."""
+    total = len(movies)
+    watched = sum(1 for movie in movies if "Watched: Yes" in movie)
+    unwatched = total - watched
+
+    years: list[int] = []
+    for movie in movies:
+        # Parse "Year: <value>" from formatted resource strings.
+        for part in movie.split(","):
+            token = part.strip()
+            if token.startswith("Year:"):
+                year_str = token.split(":", maxsplit=1)[1].strip()
+                if year_str.isdigit():
+                    years.append(int(year_str))
+                break
+
+    year_note = ""
+    if years:
+        year_note = f" Your movies span from {min(years)} to {max(years)}."
+
+    return (
+        "[Watchlist Summary]\n\n"
+        f"You have {total} movie(s): {watched} watched and {unwatched} unwatched."
+        f"{year_note}"
+    )
+
 async def summarize_watchlist(ctx: Context) -> str:
     """
     Summarize the user's watchlist using LLM sampling.
@@ -44,8 +72,9 @@ async def summarize_watchlist(ctx: Context) -> str:
             f"[Watchlist Summary]\n\n"
             f"{str(message_result.content)}"
         )
-    except (AttributeError, TypeError) as e:
-        return f"Failed to generate a summary: {str(e)}"
+    except Exception:
+        # If sampling is unavailable on remote infra, still return a useful summary.
+        return _build_local_summary(movies)
 
 class RatingInput(BaseModel):
     """Schema for collecting rating input from user."""
