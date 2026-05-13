@@ -2,7 +2,6 @@
 """Tool functions for the Movie Watchlist MCP server."""
 
 import os
-import asyncio
 import aiosqlite
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import Context
@@ -11,34 +10,20 @@ from mcp_server_watchlist.resources import get_all_movies
 from mcp_server_watchlist import db
 
 
-SAMPLING_TIMEOUT_SECONDS = float(os.environ.get("SAMPLING_TIMEOUT_SECONDS", "8"))
+def _is_sampling_enabled() -> bool:
+    """Read runtime flag to decide whether LLM sampling should be attempted."""
+    raw = os.environ.get("ENABLE_LLM_SAMPLING", "true").strip().lower()
+    return raw in {"1", "true", "yes", "y", "on"}
 
 
-def _build_local_summary(movies: list[str]) -> str:
-    """Build a deterministic summary when LLM sampling is unavailable."""
-    total = len(movies)
-    watched = sum(1 for movie in movies if "Watched: Yes" in movie)
-    unwatched = total - watched
-
-    years: list[int] = []
-    for movie in movies:
-        # Parse "Year: <value>" from formatted resource strings.
-        for part in movie.split(","):
-            token = part.strip()
-            if token.startswith("Year:"):
-                year_str = token.split(":", maxsplit=1)[1].strip()
-                if year_str.isdigit():
-                    years.append(int(year_str))
-                break
-
-    year_note = ""
-    if years:
-        year_note = f" Your movies span from {min(years)} to {max(years)}."
+def _build_watchlist_overview(movies: list[str]) -> str:
+    """Build watchlist response without using LLM sampling."""
+    movie_lines = "\n".join(f"- {movie}" for movie in movies)
 
     return (
         "[Watchlist Summary]\n\n"
-        f"You have {total} movie(s): {watched} watched and {unwatched} unwatched."
-        f"{year_note}"
+        "Sampling is disabled or unavailable. Here is your watchlist:\n"
+        f"{movie_lines}"
     )
 
 async def summarize_watchlist(ctx: Context) -> str:
@@ -49,6 +34,10 @@ async def summarize_watchlist(ctx: Context) -> str:
     movies = await get_all_movies()
     if not movies:
         return "Your watchlist is empty. Add some movies to get a summary!"
+
+    if not _is_sampling_enabled():
+        return _build_watchlist_overview(movies)
+
     movie_list = '\n'.join(movies)
     prompt = (
         "Here is a user's movie watchlist. "
@@ -57,32 +46,25 @@ async def summarize_watchlist(ctx: Context) -> str:
         f"Watchlist:\n{movie_list}"
     )
     # Use LLM sampling
-    try:
-        message_result = await asyncio.wait_for(
-            ctx.session.create_message(
-                messages=[
-                    SamplingMessage(
-                        role="user",
-                        content=TextContent(type="text", text=prompt),
-                    )
-                ],
-                system_prompt="You are a helpful movie assistant.",
-                max_tokens=100,
-            ),
-            timeout=SAMPLING_TIMEOUT_SECONDS,
-        )
-        if message_result.content.type == "text":
-            return (
-                f"[Watchlist Summary]\n\n"
-                f"{message_result.content.text}"
+    message_result = await ctx.session.create_message(
+        messages=[
+            SamplingMessage(
+                role="user",
+                content=TextContent(type="text", text=prompt),
             )
+        ],
+        system_prompt="You are a helpful movie assistant.",
+        max_tokens=100,
+    )
+    if message_result.content.type == "text":
         return (
             f"[Watchlist Summary]\n\n"
-            f"{str(message_result.content)}"
+            f"{message_result.content.text}"
         )
-    except Exception:
-        # If sampling is unavailable on remote infra, still return a useful summary.
-        return _build_local_summary(movies)
+    return (
+        f"[Watchlist Summary]\n\n"
+        f"{str(message_result.content)}"
+    )
 
 class RatingInput(BaseModel):
     """Schema for collecting rating input from user."""
