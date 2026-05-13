@@ -16,6 +16,12 @@ def _is_sampling_enabled() -> bool:
     return raw in {"1", "true", "yes", "y", "on"}
 
 
+def _is_elicitation_enabled() -> bool:
+    """Read runtime flag to decide whether elicitation should be attempted."""
+    raw = os.environ.get("ENABLE_ELICITATION", "true").strip().lower()
+    return raw in {"1", "true", "yes", "y", "on"}
+
+
 def _build_watchlist_overview(movies: list[str]) -> str:
     """Build watchlist response without using LLM sampling."""
     movie_lines = "\n".join(f"- {movie}" for movie in movies)
@@ -88,7 +94,7 @@ async def add_movie(title: str, year: int) -> str:
         f"Rating: N/A to watchlist."
     )
 
-async def mark_watched(title: str, ctx: Context) -> str:
+async def mark_watched(title: str, ctx: Context | None = None) -> str:
     """
     Mark a movie as watched.
     Args:
@@ -104,14 +110,15 @@ async def mark_watched(title: str, ctx: Context) -> str:
             row = await cursor.fetchone()
         if not row:
             return f"Movie not found in watchlist: Title: {title}"
-        # Use elicitation to get rating input from user
-        result = await ctx.elicit(
-            message="Great! Please provide your rating.",
-            schema=RatingInput,
-        )
         rating = None
-        if getattr(result, "action", None) == "accept" and getattr(result, "data", None):
-            rating = result.data.rating
+        if _is_elicitation_enabled() and ctx is not None:
+            # Use elicitation to get rating input from user.
+            result = await ctx.elicit(
+                message="Great! Please provide your rating.",
+                schema=RatingInput,
+            )
+            if getattr(result, "action", None) == "accept" and getattr(result, "data", None):
+                rating = result.data.rating
         await conn.execute(
             "UPDATE watchlist SET watched = 1, rating = ? WHERE title = ?",
             (rating, title),

@@ -146,6 +146,42 @@ async def test_mark_watched_success(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_mark_watched_elicitation_disabled(tmp_path, monkeypatch):
+    """Test mark_watched skips elicitation when flag is disabled."""
+
+    class DummyCtx:
+        """Dummy context that must not be used for elicitation."""
+
+        async def elicit(self, *_args, **_kwargs):
+            raise AssertionError("elicit should not be called when disabled")
+
+    test_db = tmp_path / "test_watchlist.db"
+    db.DB_PATH = str(test_db)
+    await db.init_db()
+    await tools.add_movie("NoPromptMovie", 2024)
+
+    monkeypatch.setenv("ENABLE_ELICITATION", "false")
+    result = await tools.mark_watched("NoPromptMovie", DummyCtx())
+    assert "Marked as watched: Title: NoPromptMovie" in result
+    assert "Rating: N/A" in result
+
+
+@pytest.mark.asyncio
+async def test_mark_watched_elicitation_disabled_without_ctx(tmp_path, monkeypatch):
+    """Test mark_watched works without context when elicitation is disabled."""
+
+    test_db = tmp_path / "test_watchlist.db"
+    db.DB_PATH = str(test_db)
+    await db.init_db()
+    await tools.add_movie("NoCtxMovie", 2024)
+
+    monkeypatch.setenv("ENABLE_ELICITATION", "false")
+    result = await tools.mark_watched("NoCtxMovie")
+    assert "Marked as watched: Title: NoCtxMovie" in result
+    assert "Rating: N/A" in result
+
+
+@pytest.mark.asyncio
 async def test_summarize_watchlist_empty(tmp_path):
     """Test summarize_watchlist with an empty watchlist."""
     class DummyCtx:
