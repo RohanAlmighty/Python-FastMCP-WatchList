@@ -1,5 +1,6 @@
 """Tests for tools.py in mcp_server_watchlist."""
 
+import asyncio
 import pytest
 from mcp_server_watchlist import db, tools
 
@@ -276,3 +277,41 @@ async def test_summarize_watchlist_runtime_error_fallback(tmp_path):
     assert "2 movie(s): 1 watched and 1 unwatched" in result
     assert "span from 2000 to 2020" in result
     tools.get_all_movies = orig
+
+
+@pytest.mark.asyncio
+async def test_summarize_watchlist_timeout_fallback(tmp_path, monkeypatch):
+    """Test summarize_watchlist falls back when sampling stalls."""
+
+    class DummySession:
+        """Dummy session that blocks long enough to trigger timeout."""
+
+        @staticmethod
+        async def create_message(*_args, **_kwargs):
+            await asyncio.sleep(0.2)
+            return None
+
+    class DummyCtx:
+        """Dummy context with session."""
+
+        session = DummySession()
+
+        def dummy_method(self):
+            """Dummy method to avoid too-few-public-methods warning."""
+            return None
+
+    test_db = tmp_path / "test_watchlist.db"
+    db.DB_PATH = str(test_db)
+    await db.init_db()
+
+    orig_movies = tools.get_all_movies
+    async def async_movies():
+        return ["Title: A, Year: 2021, Watched: No, Rating: N/A"]
+
+    monkeypatch.setattr(tools, "SAMPLING_TIMEOUT_SECONDS", 0.05)
+    tools.get_all_movies = staticmethod(async_movies)
+
+    result = await tools.summarize_watchlist(DummyCtx())
+    assert "[Watchlist Summary]" in result
+    assert "You have 1 movie(s): 0 watched and 1 unwatched" in result
+    tools.get_all_movies = orig_movies

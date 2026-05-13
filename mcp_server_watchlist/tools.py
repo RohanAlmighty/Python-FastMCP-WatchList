@@ -1,12 +1,17 @@
 
 """Tool functions for the Movie Watchlist MCP server."""
 
+import os
+import asyncio
 import aiosqlite
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import Context
 from mcp.types import SamplingMessage, TextContent
 from mcp_server_watchlist.resources import get_all_movies
 from mcp_server_watchlist import db
+
+
+SAMPLING_TIMEOUT_SECONDS = float(os.environ.get("SAMPLING_TIMEOUT_SECONDS", "8"))
 
 
 def _build_local_summary(movies: list[str]) -> str:
@@ -53,15 +58,18 @@ async def summarize_watchlist(ctx: Context) -> str:
     )
     # Use LLM sampling
     try:
-        message_result = await ctx.session.create_message(
-            messages=[
-                SamplingMessage(
-                    role="user",
-                    content=TextContent(type="text", text=prompt),
-                )
-            ],
-            system_prompt="You are a helpful movie assistant.",
-            max_tokens=100,
+        message_result = await asyncio.wait_for(
+            ctx.session.create_message(
+                messages=[
+                    SamplingMessage(
+                        role="user",
+                        content=TextContent(type="text", text=prompt),
+                    )
+                ],
+                system_prompt="You are a helpful movie assistant.",
+                max_tokens=100,
+            ),
+            timeout=SAMPLING_TIMEOUT_SECONDS,
         )
         if message_result.content.type == "text":
             return (
