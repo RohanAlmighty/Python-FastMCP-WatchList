@@ -1,6 +1,5 @@
 """Tests for tools.py in mcp_server_watchlist."""
 
-import asyncio
 import pytest
 from mcp_server_watchlist import db, tools
 
@@ -211,7 +210,7 @@ async def test_summarize_watchlist_non_text_2(tmp_path):
 
 @pytest.mark.asyncio
 async def test_summarize_watchlist_exception(tmp_path):
-    """Test summarize_watchlist falls back to local summary on exception."""
+    """Test summarize_watchlist propagates sampling errors in strict mode."""
     class DummyCtx:
         """Dummy context for session."""
         session = type(
@@ -231,17 +230,16 @@ async def test_summarize_watchlist_exception(tmp_path):
     await db.init_db()
     orig = tools.get_all_movies
     async def async_movies():
-        return ["Movie"]
+        return ["Title: Movie, Year: 2010, Watched: No, Rating: N/A"]
     tools.get_all_movies = staticmethod(async_movies)
-    result = await tools.summarize_watchlist(DummyCtx())
-    assert "[Watchlist Summary]" in result
-    assert "You have 1 movie(s)" in result
+    with pytest.raises(AttributeError):
+        await tools.summarize_watchlist(DummyCtx())
     tools.get_all_movies = orig
 
 
 @pytest.mark.asyncio
 async def test_summarize_watchlist_runtime_error_fallback(tmp_path):
-    """Test summarize_watchlist handles non-attribute runtime errors too."""
+    """Test summarize_watchlist propagates runtime sampling errors."""
 
     class DummySession:
         """Dummy session that raises a generic runtime error."""
@@ -272,24 +270,21 @@ async def test_summarize_watchlist_runtime_error_fallback(tmp_path):
         ]
 
     tools.get_all_movies = staticmethod(async_movies)
-    result = await tools.summarize_watchlist(DummyCtx())
-    assert "[Watchlist Summary]" in result
-    assert "2 movie(s): 1 watched and 1 unwatched" in result
-    assert "span from 2000 to 2020" in result
+    with pytest.raises(RuntimeError):
+        await tools.summarize_watchlist(DummyCtx())
     tools.get_all_movies = orig
 
 
 @pytest.mark.asyncio
-async def test_summarize_watchlist_timeout_fallback(tmp_path, monkeypatch):
-    """Test summarize_watchlist falls back when sampling stalls."""
+async def test_summarize_watchlist_sampling_disabled_via_env(tmp_path, monkeypatch):
+    """Test summarize_watchlist bypasses sampling when flag is disabled."""
 
     class DummySession:
-        """Dummy session that blocks long enough to trigger timeout."""
+        """Session that should not be called when sampling is disabled."""
 
         @staticmethod
         async def create_message(*_args, **_kwargs):
-            await asyncio.sleep(0.2)
-            return None
+            raise AssertionError("create_message should not be called")
 
     class DummyCtx:
         """Dummy context with session."""
@@ -304,14 +299,19 @@ async def test_summarize_watchlist_timeout_fallback(tmp_path, monkeypatch):
     db.DB_PATH = str(test_db)
     await db.init_db()
 
-    orig_movies = tools.get_all_movies
-    async def async_movies():
-        return ["Title: A, Year: 2021, Watched: No, Rating: N/A"]
+    orig = tools.get_all_movies
 
-    monkeypatch.setattr(tools, "SAMPLING_TIMEOUT_SECONDS", 0.05)
+    async def async_movies():
+        return [
+            "Title: One, Year: 1999, Watched: Yes, Rating: 9.0",
+            "Title: Two, Year: 2015, Watched: No, Rating: N/A",
+        ]
+
+    monkeypatch.setenv("ENABLE_LLM_SAMPLING", "false")
     tools.get_all_movies = staticmethod(async_movies)
 
     result = await tools.summarize_watchlist(DummyCtx())
-    assert "[Watchlist Summary]" in result
-    assert "You have 1 movie(s): 0 watched and 1 unwatched" in result
-    tools.get_all_movies = orig_movies
+    assert "Sampling is disabled or unavailable" in result
+    assert "Title: One" in result
+    assert "Title: Two" in result
+    tools.get_all_movies = orig
