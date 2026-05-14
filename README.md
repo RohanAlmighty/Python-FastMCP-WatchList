@@ -259,6 +259,12 @@ This will update your `uv.lock` and `.venv` to match the latest compatible versi
 
 You do **not** need to re-run `uv tool install` after re-resolving dependencies unless you want to upgrade the tool itself.
 
+- **New tools or prompts not showing in MCP Inspector after code changes:** The installed CLI tool (`mcp-server-watchlist`) is a snapshot of the package at install time. After making code changes, reinstall it from your local source to pick up the latest changes:
+  ```bash
+  uv tool install --force .
+  ```
+  Run this from the project root directory whenever you add or modify tools, prompts, or resources.
+
 - **Inspector won't start:** Make sure Node.js is installed and available in your PATH. Try running `node -v` and `npx -v` to verify.
 - **Port 8000 already in use:** Stop any other process using port 8000 or change the port in your server code.
 - **Inspector UI not opening:** Ensure the Inspector process is running and check your browser for http://localhost:6274.
