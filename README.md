@@ -1,153 +1,164 @@
 
 # Watchlist MCP Server
 
-This project implements a Movie Watchlist Model Context Protocol (MCP) server using [FastMCP](https://github.com/modelcontext/fastmcp). It provides a simple API to manage a movie watchlist, including marking movies as watched/unwatched, adding ratings, retrieving lists of movies, and generating LLM-powered summaries of your watchlist.
+Lights, camera, automation.
 
+This project implements a Movie Watchlist Model Context Protocol (MCP) server using [FastMCP](https://github.com/modelcontext/fastmcp). It gives you a clean way to manage a movie watchlist, including marking movies watched/unwatched, adding ratings, retrieving list views, and generating LLM-powered summaries.
 
 ## Demo Recording
 
-Watch a demo of the project here:
+Watch the project in action:
 
 [![Demo Video](https://img.youtube.com/vi/zMOPd2BnTOY/0.jpg)](https://www.youtube.com/watch?v=zMOPd2BnTOY)
 
-
-
 ## Features
 
-- **LLM Sampling:**
-  - Generate friendly, AI-powered summaries of your movie watchlist. The `summarize_watchlist` tool uses LLM sampling to send your movie list to a language model, which returns a brief, insightful summary. This can highlight genres, trends, or fun facts about your watchlist, making your experience more interactive and personalized.
+### LLM Sampling
 
-- **Elicitation:**
-  - Collect additional information from the user when required. For example, when marking a movie as watched, the server will prompt the user to provide a rating for the movie (out of 10) using an elicitation flow. Elicitation is handled automatically by the MCP server and is highlighted in the `mark_watched` tool.
+Generate friendly, AI-powered summaries of your watchlist. The `summarize_watchlist` tool uses LLM sampling to send your movie list to a language model and returns a brief, insightful summary. It can highlight genres, trends, or fun patterns in your collection.
 
-- **Database Schema:**
-  - Each movie has: `title` (str), `year` (int), `watched` (bool), and `rating` (float, optional, out of 10).
+### Elicitation
 
-- **Database Connectivity:**
-  - By default, the server uses local SQLite (`watchlist.db`).
-  - You can connect to remote SQL databases by setting `DATABASE_URL`.
-  - Supported URL styles:
-    - `postgresql://user:pass@host:5432/dbname`
-    - `mysql://user:pass@host:3306/dbname`
-    - `sqlite:///absolute/or/relative/path.db`
+Collect extra input when needed. Example: when marking a movie as watched, the server can prompt the user for a rating (out of 10) using an elicitation flow. This behavior is showcased in `mark_watched`.
 
-- **Tools:**
-  - `show_watchlist()` — Return all watchlist entries as formatted rows.
-  - `add_movie(title: str, year: int)` — Add a movie to the watchlist.
-  - `mark_watched(title: str)` — Mark a movie as watched (**elicits a rating from the user**).
-  - `unwatch_movie(title: str)` — Mark a movie as unwatched (removes rating).
-  - `delete_movie(title: str)` — Delete a movie from the watchlist.
-  - `summarize_watchlist()` — Get a friendly, LLM-generated summary of your watchlist (**uses LLM sampling**).
+### Database Schema
 
-- **Resources:**
-  - `watchlist://{title}` — Get details of a movie by title.
-  - `watchlist://all` — Get all movies in the watchlist.
-  - `watchlist://unwatched` — Get all unwatched movies.
-  - `watchlist://watched` — Get all watched movies.
+Each movie includes:
 
-- **Prompts:**
-  - `prompt_add_movie(title: str, year: int)` — Prompt to add a movie.
-  - `prompt_unwatch_movie(title: str)` — Prompt to mark a movie as unwatched.
-  - `prompt_delete_movie(title: str)` — Prompt to delete a movie.
-  - `prompt_mark_watched(title: str)` — Prompt to mark a movie as watched.
+- `title` (`str`)
+- `year` (`int`)
+- `watched` (`bool`)
+- `rating` (`float`, optional, out of 10)
 
-All tools and resources return formatted strings with the movie's title, year, watched status, and rating (if available). Elicitation is used where additional user input is required, such as collecting a rating when marking a movie as watched.
+### Database Connectivity
 
+- Default database: local SQLite (`watchlist.db`)
+- Remote databases supported via `DATABASE_URL`
+- Supported URL styles:
+  - `postgresql://user:[REDACTED_SQL_PASSWORD_1]@host:5432/dbname`
+  - `mysql://user:[REDACTED_SQL_PASSWORD_1]@host:3306/dbname`
+  - `sqlite:///absolute/or/relative/path.db`
 
+### Tools
 
+- `show_watchlist()` - Return all watchlist entries as formatted rows.
+- `add_movie(title: str, year: int)` - Add a movie to the watchlist.
+- `mark_watched(title: str)` - Mark a movie as watched (elicits a rating from the user).
+- `unwatch_movie(title: str)` - Mark a movie as unwatched (removes rating).
+- `delete_movie(title: str)` - Delete a movie from the watchlist.
+- `summarize_watchlist()` - Get a friendly, LLM-generated summary of your watchlist (uses LLM sampling).
+
+### Resources
+
+- `watchlist://{title}` - Get details of a movie by title.
+- `watchlist://all` - Get all movies in the watchlist.
+- `watchlist://unwatched` - Get all unwatched movies.
+- `watchlist://watched` - Get all watched movies.
+
+### Prompts
+
+- `prompt_add_movie(title: str, year: int)` - Prompt to add a movie.
+- `prompt_unwatch_movie(title: str)` - Prompt to mark a movie as unwatched.
+- `prompt_delete_movie(title: str)` - Prompt to delete a movie.
+- `prompt_mark_watched(title: str)` - Prompt to mark a movie as watched.
+
+All tools and resources return formatted strings with title, year, watched status, and rating (if available). Elicitation is used where additional user input is required.
 
 ## Requirements
 
-- **Python**: 3.12 or newer (see `pyproject.toml`)
-- **Node.js**: Required for running the MCP Inspector (via `npx`). [Download Node.js](https://nodejs.org/)
-- **MCP CLI**: Installed automatically as a dependency (`mcp[cli]` in `pyproject.toml`)
-
+- Python: 3.12 or newer (see `pyproject.toml`)
+- Node.js: required for MCP Inspector (via `npx`). [Download Node.js](https://nodejs.org/)
+- MCP CLI: installed automatically as a dependency (`mcp[cli]` in `pyproject.toml`)
 
 ## Getting Started
 
-
 ### 1. Install [uv](https://docs.astral.sh/uv/)
 
-
 macOS:
+
 ```bash
 brew install uv
 ```
+
 Windows:
+
 ```bash
 winget install --id=astral-sh.uv -e
 ```
-Or see the [uv docs](https://docs.astral.sh/uv/) for other platforms.
+
+For other platforms, see the [uv docs](https://docs.astral.sh/uv/).
 
 ### 2. Install dependencies
 
-To install dependencies (from `pyproject.toml`, `uv.lock`, or `requirements.txt`), run:
+Install dependencies from `pyproject.toml`, `uv.lock`, or `requirements.txt`:
+
 ```bash
 uv sync
 ```
 
-
-### 3. Install the package in editable mode
+### 3. Install package in editable mode
 
 ```bash
 uv pip install -e .
 ```
 
+### 4. Install/refresh the CLI tool from local source
 
-### 4. Run the server locally
+If you are developing locally, install the CLI from this repo. Use `--force --no-cache` to ensure the installed tool always reflects your latest local code (bypasses uv's build cache):
 
-You can run the server using the module directly:
+```bash
+uv tool install --force --no-cache .
+```
+
+### 5. Run the server locally
+
+Run via module:
 
 ```bash
 python -m mcp_server_watchlist.server
 ```
 
-Or, if you installed in editable mode, you can use the script entry point (as defined in `pyproject.toml`):
+Or run via script entry point (from `pyproject.toml`):
 
 ```bash
 mcp-server-watchlist
 ```
 
-To use a remote SQL database, set `DATABASE_URL` before starting the server. Example:
+To use a remote SQL database, set `DATABASE_URL` before starting:
 
 ```bash
-export DATABASE_URL="postgresql://username:password@db-host:5432/watchlist"
+export DATABASE_URL="postgresql://username:[REDACTED_SQL_PASSWORD_1]word@db-host:5432/watchlist"
 mcp-server-watchlist
 ```
 
+### 6. Open MCP Inspector
 
-### 5. Open the MCP Inspector
-
-In a separate terminal, run:
+In a separate terminal:
 
 ```bash
 npx @modelcontextprotocol/inspector
 ```
 
-> **Note:** The Inspector requires Node.js. For more details, see the [MCP Inspector documentation](https://github.com/modelcontext/inspector).
+Note: Inspector requires Node.js. See [MCP Inspector documentation](https://github.com/modelcontext/inspector).
 
+## Endpoints and Testing
 
+Use **MCP Inspector** as a web interface for interacting with tools, resources, and prompts.
 
+How to use MCP Inspector:
 
-## Endpoints & Testing
-
-You can test your MCP server using the **MCP Inspector**, a web interface for interacting with your tools, resources, and prompts.
-
-**How to use MCP Inspector:**
-1. Make sure your server is running and the Inspector is started (see Getting Started above).
-2. Open the Inspector UI (usually at http://localhost:6274) in your browser. Use it to invoke tools, resources, and prompts interactively.
-
+1. Start your server and the Inspector (see Getting Started).
+2. Open the Inspector UI (usually http://localhost:6274) and invoke tools, resources, and prompts interactively.
 
 ---
 
-
-
 ## Sample VS Code MCP User Config
 
-Depending on your setup, use one of the following configurations in your VS Code user or workspace settings:
+Depending on your setup, use one of the following in VS Code user/workspace settings.
 
-### 1. Local Setup (run your own server)
-Follow all steps in the **Getting Started** section above, then use this config:
+### 1. Local setup (run your own server)
+
+Follow all steps in Getting Started, then use:
 
 ```jsonc
 {
@@ -161,8 +172,9 @@ Follow all steps in the **Getting Started** section above, then use this config:
 }
 ```
 
-### 2. Direct Use (hosted server, no setup required)
-If you want to use the hosted server directly, use this config:
+### 2. Direct use (hosted server, no setup required)
+
+Use this config to connect to the hosted server:
 
 ```jsonc
 {
@@ -176,34 +188,29 @@ If you want to use the hosted server directly, use this config:
 }
 ```
 
-
-Use only the relevant section above based on whether you want to run the server locally or use the remote server.
-
+Use only the relevant config based on whether you want local or hosted usage.
 
 ---
 
+## Troubleshooting and FAQ
 
-## Troubleshooting & FAQ
+### CLI Tool Installation and Usage
 
+You can install the `mcp-server-watchlist` CLI globally using [uv](https://github.com/astral-sh/uv).
 
-## CLI Tool Installation & Usage
+#### Install from local source (development)
 
-
-You can install the `mcp-server-watchlist` CLI tool globally using [uv](https://github.com/astral-sh/uv):
-
-### Install from local source (for development)
-
-If you're working on the project locally and want to install the current development version:
+If you are working locally and want the current development version:
 
 ```bash
-uv tool install .
+uv tool install --force .
 ```
 
-This installs the package from your local directory, allowing you to test changes immediately.
+This installs from your local directory and refreshes the installed tool to include your latest changes.
 
-### Install globally (from PyPI, when published)
+#### Install globally (from PyPI, when published)
 
-Once the package is published to PyPI, you can install it globally:
+Once published:
 
 ```bash
 uv tool install mcp-server-watchlist
@@ -211,7 +218,7 @@ uv tool install mcp-server-watchlist
 uv tool install --user mcp-server-watchlist
 ```
 
-After this, you can run the server from any terminal:
+After installation:
 
 ```bash
 mcp-server-watchlist
@@ -219,79 +226,83 @@ mcp-server-watchlist
 
 ### Setting the database URL
 
-To control which database is used, set the `DATABASE_URL` environment variable before running the tool:
+Set `DATABASE_URL` before running the tool:
 
 ```bash
 # Use SQLite (default, relative to current directory)
 export DATABASE_URL="sqlite:///watchlist.db"
 mcp-server-watchlist
 
-
 # Use a specific absolute path for SQLite
 export DATABASE_URL="sqlite:////absolute/path/to/watchlist.db"
 mcp-server-watchlist
 
-> **Tip:**
-> If you want to always use the `watchlist.db` file in your repo directory, set `DATABASE_URL` to the absolute path. For example:
->
-> ```bash
-> export DATABASE_URL="sqlite:////absolute/path/to/your/repo/watchlist.db"
-> mcp-server-watchlist
-> ```
->
-> Or as a one-liner:
->
-> ```bash
-> DATABASE_URL="sqlite:////absolute/path/to/your/repo/watchlist.db" mcp-server-watchlist
-> ```
->
-> This ensures the server always uses the database file in your repo, no matter where you run the command from.
-
-> **Windows Note:**
-> On Windows, use three slashes for absolute paths (e.g., `sqlite:///C:/path/to/watchlist.db`). Using four slashes may cause issues with the aiosqlite driver. For PowerShell, set the environment variable like: `$env:DATABASE_URL = "sqlite:///C:/path/to/watchlist.db"`
-
 # Use PostgreSQL
-export DATABASE_URL="postgresql://user:password@host:5432/dbname"
+export DATABASE_URL="postgresql://user:[REDACTED_SQL_PASSWORD_1]word@host:5432/dbname"
+mcp-server-watchlist
+
+# Use MySQL
+export DATABASE_URL="mysql://user:[REDACTED_SQL_PASSWORD_1]word@host:3306/dbname"
 mcp-server-watchlist
 ```
 
-#### MySQL
+Tip:
 
-# Use MySQL
-export DATABASE_URL="mysql://user:password@host:3306/dbname"
+If you want to always use the `watchlist.db` file in your repo directory, set `DATABASE_URL` to its absolute path.
+
+```bash
+export DATABASE_URL="sqlite:////absolute/path/to/your/repo/watchlist.db"
 mcp-server-watchlist
+```
+
+One-liner variant:
+
+```bash
+DATABASE_URL="sqlite:////absolute/path/to/your/repo/watchlist.db" mcp-server-watchlist
+```
+
+This ensures the same DB file is used regardless of where you run the command from.
+
+Windows note:
+
+On Windows, use three slashes for absolute paths (example: `sqlite:///C:/path/to/watchlist.db`). Using four slashes may cause issues with `aiosqlite`. In PowerShell:
+
+```powershell
+$env:DATABASE_URL = "sqlite:///C:/path/to/watchlist.db"
 ```
 
 If `DATABASE_URL` is not set, the tool defaults to a local SQLite file named `watchlist.db` in the current directory.
 
 ### Re-resolving dependencies safely
 
-If you want to re-resolve all dependencies (for example, after editing `pyproject.toml`):
+If you need to re-resolve dependencies (for example after editing `pyproject.toml`):
 
 ```bash
 uv lock
 uv sync
 ```
 
-This will update your `uv.lock` and `.venv` to match the latest compatible versions from your `pyproject.toml`.
+This updates `uv.lock` and `.venv` to latest compatible versions.
 
-You do **not** need to re-run `uv tool install` after re-resolving dependencies unless you want to upgrade the tool itself.
+You do not need to re-run `uv tool install` after re-resolving dependencies unless you want to upgrade or refresh the installed tool.
 
-- **New tools or prompts not showing in MCP Inspector after code changes:** The installed CLI tool (`mcp-server-watchlist`) is a snapshot of the package at install time. After making code changes, reinstall it from your local source to pick up the latest changes:
+### Common Issues
+
+- New tools or prompts not showing in MCP Inspector after code changes: `mcp-server-watchlist` is a snapshot at install time. Reinstall from project root:
+
   ```bash
   uv tool install --force .
   ```
-  Run this from the project root directory whenever you add or modify tools, prompts, or resources.
 
-- **Inspector won't start:** Make sure Node.js is installed and available in your PATH. Try running `node -v` and `npx -v` to verify.
-- **Port 8000 already in use:** Stop any other process using port 8000 or change the port in your server code.
-- **Inspector UI not opening:** Ensure the Inspector process is running and check your browser for http://localhost:6274.
-- **Python version issues:** Ensure you are using Python 3.12 or newer (as required by `pyproject.toml`). Check with `python --version`.
+- Inspector will not start: verify Node.js is installed and on PATH with `node -v` and `npx -v`.
+- Port 8000 already in use: stop the process using port 8000 or change the server port.
+- Inspector UI not opening: verify Inspector is running and open http://localhost:6274.
+- Python version issues: use Python 3.12+ (required by `pyproject.toml`). Check with `python --version`.
 
-For more help, see the [FastMCP documentation](https://github.com/modelcontext/fastmcp) or open an issue in this repository.
+For more help, see [FastMCP documentation](https://github.com/modelcontext/fastmcp) or open an issue in this repository.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
