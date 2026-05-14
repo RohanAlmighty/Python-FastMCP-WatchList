@@ -203,7 +203,7 @@ You can install the `mcp-server-watchlist` CLI globally using [uv](https://githu
 If you are working locally and want the current development version:
 
 ```bash
-uv tool install --force .
+uv tool install --force --no-cache .
 ```
 
 This installs from your local directory and refreshes the installed tool to include your latest changes.
@@ -291,7 +291,7 @@ You do not need to re-run `uv tool install` after re-resolving dependencies unle
 - New tools or prompts not showing in MCP Inspector after code changes: `mcp-server-watchlist` is a snapshot at install time. Reinstall from project root:
 
   ```bash
-  uv tool install --force .
+  uv tool install --force --no-cache .
   ```
 
 - Inspector will not start: verify Node.js is installed and on PATH with `node -v` and `npx -v`.
