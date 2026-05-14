@@ -104,10 +104,10 @@ uv pip install -e .
 
 ### 4. Install/refresh the CLI tool from local source
 
-If you are developing locally, install the CLI from this repo. Use `--force` to ensure the installed tool reflects your latest local code:
+If you are developing locally, install the CLI from this repo. Use `--force --no-cache` to ensure the installed tool always reflects your latest local code (bypasses uv's build cache):
 
 ```bash
-uv tool install --force .
+uv tool install --force --no-cache .
 ```
 
 ### 5. Run the server locally
