@@ -23,7 +23,16 @@ Watch a demo of the project here:
 - **Database Schema:**
   - Each movie has: `title` (str), `year` (int), `watched` (bool), and `rating` (float, optional, out of 10).
 
+- **Database Connectivity:**
+  - By default, the server uses local SQLite (`watchlist.db`).
+  - You can connect to remote SQL databases by setting `DATABASE_URL`.
+  - Supported URL styles:
+    - `postgresql://user:pass@host:5432/dbname`
+    - `mysql://user:pass@host:3306/dbname`
+    - `sqlite:///absolute/or/relative/path.db`
+
 - **Tools:**
+  - `show_watchlist()` — Return all watchlist entries as formatted rows.
   - `add_movie(title: str, year: int)` — Add a movie to the watchlist.
   - `mark_watched(title: str)` — Mark a movie as watched (**elicits a rating from the user**).
   - `unwatch_movie(title: str)` — Mark a movie as unwatched (removes rating).
@@ -96,6 +105,13 @@ python -m mcp_server_watchlist.server
 Or, if you installed in editable mode, you can use the script entry point (as defined in `pyproject.toml`):
 
 ```bash
+mcp-server-watchlist
+```
+
+To use a remote SQL database, set `DATABASE_URL` before starting the server. Example:
+
+```bash
+export DATABASE_URL="postgresql://username:password@db-host:5432/watchlist"
 mcp-server-watchlist
 ```
 

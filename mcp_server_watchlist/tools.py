@@ -2,7 +2,6 @@
 """Tool functions for the Movie Watchlist MCP server."""
 
 import os
-import aiosqlite
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp import Context
 from mcp.types import SamplingMessage, TextContent
@@ -88,11 +87,10 @@ async def add_movie(title: str, year: int) -> str:
         title: Movie name (exclude year)
         year: Year of release
     """
-    async with aiosqlite.connect(db.DB_PATH) as conn:
-        await conn.execute(
-            "INSERT INTO watchlist (title, year) VALUES (?, ?)", (title, year)
-        )
-        await conn.commit()
+    await db.execute(
+        "INSERT INTO watchlist (title, year) VALUES (:title, :year)",
+        {"title": title, "year": year},
+    )
     # New movies have no rating by default
     return (
         f"Added: Title: {title}, Year: {year}, "
@@ -108,32 +106,30 @@ async def mark_watched(title: str, ctx: Context | None = None) -> str:
         Pass only the movie name, not including the year. If the year is present, remove it before calling.
         Use elicitation to get rating from the user.
     """
-    async with aiosqlite.connect(db.DB_PATH) as conn:
-        async with conn.execute(
-            "SELECT year FROM watchlist WHERE title = ?", (title,)
-        ) as cursor:
-            row = await cursor.fetchone()
-        if not row:
-            return f"Movie not found in watchlist: Title: {title}"
-        rating = None
-        if _is_elicitation_enabled() and ctx is not None:
-            # Use elicitation to get rating input from user.
-            result = await ctx.elicit(
-                message="Great! Please provide your rating.",
-                schema=RatingInput,
-            )
-            if getattr(result, "action", None) == "accept" and getattr(result, "data", None):
-                rating = result.data.rating
-        await conn.execute(
-            "UPDATE watchlist SET watched = 1, rating = ? WHERE title = ?",
-            (rating, title),
+    row = await db.fetch_one(
+        "SELECT year FROM watchlist WHERE title = :title",
+        {"title": title},
+    )
+    if not row:
+        return f"Movie not found in watchlist: Title: {title}"
+    rating = None
+    if _is_elicitation_enabled() and ctx is not None:
+        # Use elicitation to get rating input from user.
+        result = await ctx.elicit(
+            message="Great! Please provide your rating.",
+            schema=RatingInput,
         )
-        await conn.commit()
-        year = row[0]
-        return (
-            f"Marked as watched: Title: {title}, Year: {year}, "
-            f"Rating: {rating if rating is not None else 'N/A'}"
-        )
+        if getattr(result, "action", None) == "accept" and getattr(result, "data", None):
+            rating = result.data.rating
+    await db.execute(
+        "UPDATE watchlist SET watched = 1, rating = :rating WHERE title = :title",
+        {"rating": rating, "title": title},
+    )
+    year = row[0]
+    return (
+        f"Marked as watched: Title: {title}, Year: {year}, "
+        f"Rating: {rating if rating is not None else 'N/A'}"
+    )
 
 async def unwatch_movie(title: str) -> str:
     """
@@ -143,24 +139,22 @@ async def unwatch_movie(title: str) -> str:
     Note:
         Pass only the movie name, not including the year. If the year is present, remove it before calling.
     """
-    async with aiosqlite.connect(db.DB_PATH) as conn:
-        async with conn.execute(
-            "SELECT year, rating FROM watchlist WHERE title = ?", (title,)
-        ) as cursor:
-            row = await cursor.fetchone()
-        if not row:
-            return f"Movie not found in watchlist: Title: {title}"
-        await conn.execute(
-            "UPDATE watchlist SET watched = 0, rating = NULL WHERE title = ?",
-            (title,),
-        )
-        await conn.commit()
-        year = row[0]
-        rating = row[1] if row[1] is not None else 'N/A'
-        return (
-            f"Marked as unwatched: Title: {title}, Year: {year}, "
-            f"Rating: {rating}"
-        )
+    row = await db.fetch_one(
+        "SELECT year, rating FROM watchlist WHERE title = :title",
+        {"title": title},
+    )
+    if not row:
+        return f"Movie not found in watchlist: Title: {title}"
+    await db.execute(
+        "UPDATE watchlist SET watched = 0, rating = NULL WHERE title = :title",
+        {"title": title},
+    )
+    year = row[0]
+    rating = row[1] if row[1] is not None else 'N/A'
+    return (
+        f"Marked as unwatched: Title: {title}, Year: {year}, "
+        f"Rating: {rating}"
+    )
 
 async def delete_movie(title: str) -> str:
     """
@@ -170,21 +164,19 @@ async def delete_movie(title: str) -> str:
     Note:
         Pass only the movie name, not including the year. If the year is present, remove it before calling.
     """
-    async with aiosqlite.connect(db.DB_PATH) as conn:
-        async with conn.execute(
-            "SELECT year, rating FROM watchlist WHERE title = ?", (title,)
-        ) as cursor:
-            row = await cursor.fetchone()
-        if not row:
-            return f"Movie not found in watchlist: Title: {title}"
-        await conn.execute(
-            "DELETE FROM watchlist WHERE title = ?",
-            (title,),
-        )
-        await conn.commit()
-        year = row[0]
-        rating = row[1] if row[1] is not None else 'N/A'
-        return (
-            f"Deleted: Title: {title}, Year: {year}, "
-            f"Rating: {rating} from watchlist."
-        )
+    row = await db.fetch_one(
+        "SELECT year, rating FROM watchlist WHERE title = :title",
+        {"title": title},
+    )
+    if not row:
+        return f"Movie not found in watchlist: Title: {title}"
+    await db.execute(
+        "DELETE FROM watchlist WHERE title = :title",
+        {"title": title},
+    )
+    year = row[0]
+    rating = row[1] if row[1] is not None else 'N/A'
+    return (
+        f"Deleted: Title: {title}, Year: {year}, "
+        f"Rating: {rating} from watchlist."
+    )
