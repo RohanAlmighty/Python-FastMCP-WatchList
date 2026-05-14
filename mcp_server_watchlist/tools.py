@@ -99,12 +99,17 @@ async def add_movie(title: str, year: int) -> str:
 
 async def mark_watched(title: str, ctx: Context | None = None) -> str:
     """
-    Mark a movie as watched.
+    Mark a movie as watched using title-only input.
+
+    Rating is collected only through MCP elicitation when enabled.
+    This tool never accepts rating as a direct input argument.
+
     Args:
         title: Movie name (exclude year)
+
     Note:
-        Pass only the movie name, not including the year. If the year is present, remove it before calling.
-        Use elicitation to get rating from the user.
+        Pass only the movie name, not including the year. If the year is present,
+        remove it before calling.
     """
     row = await db.fetch_one(
         "SELECT year FROM watchlist WHERE title = :title",
@@ -120,7 +125,9 @@ async def mark_watched(title: str, ctx: Context | None = None) -> str:
             schema=RatingInput,
         )
         if getattr(result, "action", None) == "accept" and getattr(result, "data", None):
-            rating = result.data.rating
+            accepted_rating = getattr(result.data, "rating", None)
+            if accepted_rating is not None:
+                rating = accepted_rating
     await db.execute(
         "UPDATE watchlist SET watched = 1, rating = :rating WHERE title = :title",
         {"rating": rating, "title": title},

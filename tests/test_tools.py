@@ -209,6 +209,19 @@ async def test_mark_watched_elicitation_disabled_without_ctx(tmp_path, monkeypat
 
 
 @pytest.mark.asyncio
+async def test_mark_watched_rejects_direct_rating_arg(tmp_path):
+    """Test mark_watched does not accept rating as direct input."""
+
+    test_db = tmp_path / "test_watchlist.db"
+    db.DB_PATH = str(test_db)
+    await db.init_db()
+    await tools.add_movie("StrictInputMovie", 2024)
+
+    with pytest.raises(TypeError):
+        await tools.mark_watched("StrictInputMovie", rating=9.0)
+
+
+@pytest.mark.asyncio
 async def test_summarize_watchlist_empty(tmp_path):
     """Test summarize_watchlist with an empty watchlist."""
     class DummyCtx:
