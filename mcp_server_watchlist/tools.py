@@ -32,6 +32,11 @@ def _build_watchlist_overview(movies: list[str]) -> str:
         f"{movie_lines}"
     )
 
+
+async def show_watchlist() -> list[str]:
+    """Return the current watchlist as a plain list of formatted movie entries."""
+    return await get_all_movies()
+
 async def summarize_watchlist(ctx: Context) -> str:
     """
     Summarize the user's watchlist using LLM sampling.

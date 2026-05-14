@@ -5,6 +5,33 @@ from mcp_server_watchlist import db, tools
 
 
 @pytest.mark.asyncio
+async def test_show_watchlist_returns_items(monkeypatch):
+    """Test show_watchlist returns formatted movie entries from resources."""
+
+    async def async_movies():
+        return ["Title: Inception, Year: 2010, Watched: No, Rating: N/A"]
+
+    monkeypatch.setattr(tools, "get_all_movies", async_movies)
+    result = await tools.show_watchlist()
+
+    assert len(result) == 1
+    assert "Inception" in result[0]
+
+
+@pytest.mark.asyncio
+async def test_show_watchlist_empty(monkeypatch):
+    """Test show_watchlist returns an empty list when the watchlist is empty."""
+
+    async def async_movies():
+        return []
+
+    monkeypatch.setattr(tools, "get_all_movies", async_movies)
+    result = await tools.show_watchlist()
+
+    assert result == []
+
+
+@pytest.mark.asyncio
 async def test_summarize_watchlist_non_text(tmp_path):
     """Test summarize_watchlist with non-text content."""
     orig = tools.get_all_movies
