@@ -191,7 +191,19 @@ Use only the relevant section above based on whether you want to run the server 
 
 You can install the `mcp-server-watchlist` CLI tool globally using [uv](https://github.com/astral-sh/uv):
 
-### Install globally (system-wide or user-wide)
+### Install from local source (for development)
+
+If you're working on the project locally and want to install the current development version:
+
+```bash
+uv tool install .
+```
+
+This installs the package from your local directory, allowing you to test changes immediately.
+
+### Install globally (from PyPI, when published)
+
+Once the package is published to PyPI, you can install it globally:
 
 ```bash
 uv tool install mcp-server-watchlist
@@ -235,9 +247,15 @@ mcp-server-watchlist
 >
 > This ensures the server always uses the database file in your repo, no matter where you run the command from.
 
+> **Windows Note:**
+> On Windows, use three slashes for absolute paths (e.g., `sqlite:///C:/path/to/watchlist.db`). Using four slashes may cause issues with the aiosqlite driver. For PowerShell, set the environment variable like: `$env:DATABASE_URL = "sqlite:///C:/path/to/watchlist.db"`
+
 # Use PostgreSQL
 export DATABASE_URL="postgresql://user:password@host:5432/dbname"
 mcp-server-watchlist
+```
+
+#### MySQL
 
 # Use MySQL
 export DATABASE_URL="mysql://user:password@host:3306/dbname"
