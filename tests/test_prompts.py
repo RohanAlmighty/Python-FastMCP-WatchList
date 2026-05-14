@@ -25,3 +25,9 @@ def test_prompt_mark_watched():
     """Test prompt_mark_watched returns correct string."""
     expected = "Mark 'Inception' as watched?"
     assert prompts.prompt_mark_watched("Inception") == expected
+
+
+def test_prompt_show_watchlist():
+    """Test prompt_show_watchlist returns correct string."""
+    expected = "Show my full watchlist?"
+    assert prompts.prompt_show_watchlist() == expected

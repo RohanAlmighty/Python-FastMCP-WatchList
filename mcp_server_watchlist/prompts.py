@@ -17,3 +17,8 @@ def prompt_delete_movie(title: str) -> str:
 def prompt_mark_watched(title: str) -> str:
     """Prompt to mark a movie as watched."""
     return f"Mark '{title}' as watched?"
+
+
+def prompt_show_watchlist() -> str:
+    """Prompt to show the full movie watchlist."""
+    return "Show my full watchlist?"

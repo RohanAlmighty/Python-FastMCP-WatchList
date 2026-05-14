@@ -1,7 +1,6 @@
 """Tests for resources.py in mcp_server_watchlist."""
 
 import pytest
-import aiosqlite
 from mcp_server_watchlist import db, resources
 
 
@@ -11,12 +10,11 @@ async def test_get_movie_and_all_movies(tmp_path):
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
-    async with aiosqlite.connect(str(test_db)) as conn:
-        await conn.execute(
-            "INSERT INTO watchlist (title, year, watched, rating) VALUES (?, ?, ?, ?)",
-            ("Inception", 2010, 0, None),
-        )
-        await conn.commit()
+    await db.execute(
+        "INSERT INTO watchlist (title, year, watched, rating) "
+        "VALUES (:title, :year, :watched, :rating)",
+        {"title": "Inception", "year": 2010, "watched": 0, "rating": None},
+    )
     result = await resources.get_movie("Inception")
     assert "Inception" in result
     all_movies = await resources.get_all_movies()
@@ -41,16 +39,16 @@ async def test_get_unwatched_and_watched_movies(tmp_path):
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
-    async with aiosqlite.connect(str(test_db)) as conn:
-        await conn.execute(
-            "INSERT INTO watchlist (title, year, watched, rating) VALUES (?, ?, ?, ?)",
-            ("Movie1", 2000, 0, None),
-        )
-        await conn.execute(
-            "INSERT INTO watchlist (title, year, watched, rating) VALUES (?, ?, ?, ?)",
-            ("Movie2", 2001, 1, 8.5),
-        )
-        await conn.commit()
+    await db.execute(
+        "INSERT INTO watchlist (title, year, watched, rating) "
+        "VALUES (:title, :year, :watched, :rating)",
+        {"title": "Movie1", "year": 2000, "watched": 0, "rating": None},
+    )
+    await db.execute(
+        "INSERT INTO watchlist (title, year, watched, rating) "
+        "VALUES (:title, :year, :watched, :rating)",
+        {"title": "Movie2", "year": 2001, "watched": 1, "rating": 8.5},
+    )
     unwatched = await resources.get_unwatched_movies()
     assert any("Movie1" in m for m in unwatched)
     watched = await resources.get_watched_movies()

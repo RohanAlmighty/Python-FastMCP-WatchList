@@ -9,13 +9,13 @@ from starlette.middleware.cors import CORSMiddleware
 from mcp.server.fastmcp import FastMCP
 from mcp_server_watchlist.db import init_db
 from mcp_server_watchlist.prompts import (
-	prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched
+    prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched, prompt_show_watchlist
 )
 from mcp_server_watchlist.resources import (
 	get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
 )
 from mcp_server_watchlist.tools import (
-	add_movie, mark_watched, unwatch_movie, delete_movie, summarize_watchlist
+    add_movie, mark_watched, unwatch_movie, delete_movie, summarize_watchlist, show_watchlist
 )
 
 # Get host and port from environment variables, fallback to defaults
@@ -30,6 +30,7 @@ def setup_server():
 
     # Register tool functions
     mcp.tool()(add_movie)
+    mcp.tool()(show_watchlist)
     mcp.tool()(mark_watched)
     mcp.tool()(unwatch_movie)
     mcp.tool()(delete_movie)
@@ -46,6 +47,7 @@ def setup_server():
     mcp.prompt()(prompt_unwatch_movie)
     mcp.prompt()(prompt_delete_movie)
     mcp.prompt()(prompt_mark_watched)
+    mcp.prompt()(prompt_show_watchlist)
 
 
 def build_http_app():

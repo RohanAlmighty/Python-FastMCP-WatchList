@@ -23,7 +23,16 @@ Watch a demo of the project here:
 - **Database Schema:**
   - Each movie has: `title` (str), `year` (int), `watched` (bool), and `rating` (float, optional, out of 10).
 
+- **Database Connectivity:**
+  - By default, the server uses local SQLite (`watchlist.db`).
+  - You can connect to remote SQL databases by setting `DATABASE_URL`.
+  - Supported URL styles:
+    - `postgresql://user:pass@host:5432/dbname`
+    - `mysql://user:pass@host:3306/dbname`
+    - `sqlite:///absolute/or/relative/path.db`
+
 - **Tools:**
+  - `show_watchlist()` — Return all watchlist entries as formatted rows.
   - `add_movie(title: str, year: int)` — Add a movie to the watchlist.
   - `mark_watched(title: str)` — Mark a movie as watched (**elicits a rating from the user**).
   - `unwatch_movie(title: str)` — Mark a movie as unwatched (removes rating).
@@ -99,6 +108,13 @@ Or, if you installed in editable mode, you can use the script entry point (as de
 mcp-server-watchlist
 ```
 
+To use a remote SQL database, set `DATABASE_URL` before starting the server. Example:
+
+```bash
+export DATABASE_URL="postgresql://username:password@db-host:5432/watchlist"
+mcp-server-watchlist
+```
+
 
 ### 5. Open the MCP Inspector
 
@@ -168,6 +184,86 @@ Use only the relevant section above based on whether you want to run the server 
 
 
 ## Troubleshooting & FAQ
+
+
+## CLI Tool Installation & Usage
+
+
+You can install the `mcp-server-watchlist` CLI tool globally using [uv](https://github.com/astral-sh/uv):
+
+### Install globally (system-wide or user-wide)
+
+```bash
+uv tool install mcp-server-watchlist
+# or for user only:
+uv tool install --user mcp-server-watchlist
+```
+
+After this, you can run the server from any terminal:
+
+```bash
+mcp-server-watchlist
+```
+
+### Setting the database URL
+
+To control which database is used, set the `DATABASE_URL` environment variable before running the tool:
+
+```bash
+# Use SQLite (default, relative to current directory)
+export DATABASE_URL="sqlite:///watchlist.db"
+mcp-server-watchlist
+
+
+# Use a specific absolute path for SQLite
+export DATABASE_URL="sqlite:////absolute/path/to/watchlist.db"
+mcp-server-watchlist
+
+> **Tip:**
+> If you want to always use the `watchlist.db` file in your repo directory, set `DATABASE_URL` to the absolute path. For example:
+>
+> ```bash
+> export DATABASE_URL="sqlite:////absolute/path/to/your/repo/watchlist.db"
+> mcp-server-watchlist
+> ```
+>
+> Or as a one-liner:
+>
+> ```bash
+> DATABASE_URL="sqlite:////absolute/path/to/your/repo/watchlist.db" mcp-server-watchlist
+> ```
+>
+> This ensures the server always uses the database file in your repo, no matter where you run the command from.
+
+# Use PostgreSQL
+export DATABASE_URL="postgresql://user:password@host:5432/dbname"
+mcp-server-watchlist
+
+# Use MySQL
+export DATABASE_URL="mysql://user:password@host:3306/dbname"
+mcp-server-watchlist
+```
+
+If `DATABASE_URL` is not set, the tool defaults to a local SQLite file named `watchlist.db` in the current directory.
+
+### Re-resolving dependencies safely
+
+If you want to re-resolve all dependencies (for example, after editing `pyproject.toml`):
+
+```bash
+uv lock
+uv sync
+```
+
+This will update your `uv.lock` and `.venv` to match the latest compatible versions from your `pyproject.toml`.
+
+You do **not** need to re-run `uv tool install` after re-resolving dependencies unless you want to upgrade the tool itself.
+
+- **New tools or prompts not showing in MCP Inspector after code changes:** The installed CLI tool (`mcp-server-watchlist`) is a snapshot of the package at install time. After making code changes, reinstall it from your local source to pick up the latest changes:
+  ```bash
+  uv tool install --force .
+  ```
+  Run this from the project root directory whenever you add or modify tools, prompts, or resources.
 
 - **Inspector won't start:** Make sure Node.js is installed and available in your PATH. Try running `node -v` and `npx -v` to verify.
 - **Port 8000 already in use:** Stop any other process using port 8000 or change the port in your server code.
