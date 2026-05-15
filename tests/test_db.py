@@ -51,8 +51,23 @@ async def test_get_watchlist_id_missing_returns_none(tmp_path):
 def test_get_database_url_defaults_to_sqlite(monkeypatch):
     """Test default DB URL uses local SQLite when DATABASE_URL is unset."""
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("DB_URL", raising=False)
     db.DB_PATH = "watchlist.db"
     assert db.get_database_url() == "sqlite+aiosqlite:///watchlist.db"
+
+
+def test_get_database_url_uses_db_url_alias(monkeypatch):
+    """Test DB_URL is accepted when DATABASE_URL is not set."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("DB_URL", "sqlite:///tmp/watchlist.db")
+    assert db.get_database_url() == "sqlite+aiosqlite:///tmp/watchlist.db"
+
+
+def test_get_database_url_prefers_database_url_over_db_url(monkeypatch):
+    """Test DATABASE_URL has precedence when both env vars are set."""
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h:5432/watchlist")
+    monkeypatch.setenv("DB_URL", "sqlite:///tmp/watchlist.db")
+    assert db.get_database_url().startswith("postgresql+asyncpg://")
 
 
 def test_get_database_url_normalizes_postgres(monkeypatch):

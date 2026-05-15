@@ -44,9 +44,22 @@ def _normalize_database_url(database_url: str) -> str:
     return database_url
 
 
+def _get_configured_database_url() -> str:
+    """Return a configured DB URL from env vars, preferring DATABASE_URL over DB_URL."""
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    if database_url:
+        return database_url
+
+    db_url = os.environ.get("DB_URL", "").strip()
+    if db_url:
+        return db_url
+
+    return ""
+
+
 def get_database_url() -> str:
     """Return the configured database URL, defaulting to local SQLite."""
-    configured_url = os.environ.get("DATABASE_URL", "").strip()
+    configured_url = _get_configured_database_url()
     if configured_url:
         return _normalize_database_url(configured_url)
     return f"sqlite+aiosqlite:///{DB_PATH}"
@@ -54,7 +67,7 @@ def get_database_url() -> str:
 
 def _make_engine():
     """Build an async engine, converting sslmode query params to connect_args."""
-    raw_url = os.environ.get("DATABASE_URL", "").strip()
+    raw_url = _get_configured_database_url()
     url = _normalize_database_url(raw_url) if raw_url else f"sqlite+aiosqlite:///{DB_PATH}"
 
     parsed = urlparse(url)
