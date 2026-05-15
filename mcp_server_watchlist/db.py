@@ -6,6 +6,8 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy import Column, Float, ForeignKey, Integer, MetaData, String, Table, UniqueConstraint, text
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 DB_PATH = "watchlist.db"
@@ -57,24 +59,45 @@ def _get_configured_database_url() -> str:
     return ""
 
 
-def get_database_url() -> str:
-    """Return the configured database URL, defaulting to local SQLite."""
-    configured_url = _get_configured_database_url()
-    if configured_url:
-        return _normalize_database_url(configured_url)
+def _default_database_url() -> str:
+    """Return the local SQLite default URL."""
     return f"sqlite+aiosqlite:///{DB_PATH}"
+
+
+def _resolve_database_url() -> str:
+    """Resolve configured DB URL and fallback to default if missing or invalid."""
+    configured_url = _get_configured_database_url()
+    if not configured_url:
+        return _default_database_url()
+
+    normalized_url = _normalize_database_url(configured_url)
+    try:
+        make_url(normalized_url)
+    except ArgumentError:
+        return _default_database_url()
+
+    return normalized_url
+
+
+def get_database_url() -> str:
+    """Return the resolved database URL used by the application."""
+    return _resolve_database_url()
 
 
 def _make_engine():
     """Build an async engine, converting sslmode query params to connect_args."""
-    raw_url = _get_configured_database_url()
-    url = _normalize_database_url(raw_url) if raw_url else f"sqlite+aiosqlite:///{DB_PATH}"
+    url = _resolve_database_url()
+
+    # Keep sqlite URL shape intact (sqlite+aiosqlite:///path) to avoid path corruption.
+    if url.startswith("sqlite+"):
+        return create_async_engine(url, connect_args={})
 
     parsed = urlparse(url)
     params = parse_qs(parsed.query, keep_blank_values=True)
     sslmode = params.pop("sslmode", [None])[0]
     new_query = urlencode({k: v[0] for k, v in params.items()})
-    url = urlunparse(parsed._replace(query=new_query))
+    if parsed.query:
+        url = urlunparse(parsed._replace(query=new_query))
 
     connect_args: dict[str, Any] = {}
     if sslmode in ("require", "verify-ca", "verify-full"):

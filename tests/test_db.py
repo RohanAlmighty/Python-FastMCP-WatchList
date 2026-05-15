@@ -70,6 +70,22 @@ def test_get_database_url_prefers_database_url_over_db_url(monkeypatch):
     assert db.get_database_url().startswith("postgresql+asyncpg://")
 
 
+def test_get_database_url_invalid_db_url_falls_back_to_sqlite(monkeypatch):
+    """Test invalid DB_URL values are ignored in favor of default SQLite."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("DB_URL", "watchlist.db")
+    db.DB_PATH = "watchlist.db"
+    assert db.get_database_url() == "sqlite+aiosqlite:///watchlist.db"
+
+
+def test_get_database_url_invalid_database_url_falls_back_to_sqlite(monkeypatch):
+    """Test invalid DATABASE_URL values are ignored in favor of default SQLite."""
+    monkeypatch.setenv("DATABASE_URL", "not-a-valid-db-url")
+    monkeypatch.delenv("DB_URL", raising=False)
+    db.DB_PATH = "watchlist.db"
+    assert db.get_database_url() == "sqlite+aiosqlite:///watchlist.db"
+
+
 def test_get_database_url_normalizes_postgres(monkeypatch):
     """Test PostgreSQL URLs are normalized to asyncpg driver."""
     monkeypatch.setenv(
@@ -138,4 +154,27 @@ def test_make_engine_without_sslmode_does_not_set_ssl(monkeypatch):
     db._make_engine()
 
     assert captured["url"].startswith("postgresql+asyncpg://")
+    assert captured["connect_args"] == {}
+
+
+def test_make_engine_invalid_configured_url_falls_back_to_sqlite(monkeypatch):
+    """Test _make_engine uses local SQLite when configured URL is invalid."""
+    captured = {}
+
+    def fake_create_async_engine(url, connect_args=None):
+        captured["url"] = url
+        captured["connect_args"] = connect_args
+
+        class DummyEngine:
+            pass
+
+        return DummyEngine()
+
+    monkeypatch.setenv("DATABASE_URL", "watchlist.db")
+    monkeypatch.delenv("DB_URL", raising=False)
+    monkeypatch.setattr(db, "create_async_engine", fake_create_async_engine)
+
+    db._make_engine()
+
+    assert captured["url"] == "sqlite+aiosqlite:///watchlist.db"
     assert captured["connect_args"] == {}
