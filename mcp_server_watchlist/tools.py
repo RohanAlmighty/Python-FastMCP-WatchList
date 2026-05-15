@@ -28,6 +28,7 @@ def _build_watchlist_overview(movies: list[str]) -> str:
 async def show_watchlist() -> list[str]:
     """
     Return the current watchlist as a plain list of formatted movie entries.
+
     Note:
         This tool returns data directly without LLM summarization.
     """
@@ -78,6 +79,7 @@ async def summarize_watchlist_with_sampling(ctx: Context) -> str:
 async def summarize_watchlist_without_sampling() -> str:
     """
     Return a deterministic watchlist overview without MCP context.
+
     Note:
         This variant is registered only when LLM sampling is disabled.
     """
@@ -89,6 +91,7 @@ async def summarize_watchlist_without_sampling() -> str:
 class RatingInput(BaseModel):
     """
     Schema for elicited rating input.
+
     Note:
         Rating must be between 0 and 10.
     """
@@ -97,9 +100,11 @@ class RatingInput(BaseModel):
 async def add_movie(title: str, year: int) -> str:
     """
     Add a movie to the watchlist.
+
     Args:
         title: Movie name (exclude year)
         year: Year of release
+
     Note:
         New movies are added as unwatched with rating set to N/A.
     """
@@ -117,9 +122,11 @@ async def add_movie(title: str, year: int) -> str:
 async def _mark_watched_with_rating(title: str, rating: float | None) -> str:
     """
     Internal helper to mark watched and persist an optional rating.
+
     Args:
         title: Movie name (exclude year)
         rating: Rating value or None.
+
     Note:
         This helper is shared by elicitation and direct-rating tool variants.
     """
@@ -147,8 +154,10 @@ async def mark_watched_with_elicitation(title: str, ctx: Context) -> str:
     Args:
         title: Movie name (exclude year)
         ctx: MCP context used to elicit rating input.
+
     Note:
-        This variant is registered only when elicitation is enabled and does not accept rating as a direct tool argument.
+        This variant is registered only when elicitation is enabled and
+        does not accept rating as a direct tool argument.
     """
     row = await db.fetch_one(
         "SELECT year FROM watchlist WHERE title = :title",
@@ -173,6 +182,7 @@ async def mark_watched_with_rating(title: str, rating: float) -> str:
     Args:
         title: Movie name (exclude year)
         rating: Rating value from 0 to 10.
+
     Note:
         This variant is registered only when elicitation is disabled.
     """
@@ -181,10 +191,13 @@ async def mark_watched_with_rating(title: str, rating: float) -> str:
 async def unwatch_movie(title: str) -> str:
     """
     Mark a movie as unwatched.
+
     Args:
         title: Movie name (exclude year)
+
     Note:
-        Pass only the movie name, not including the year. If the year is present, remove it before calling.
+        Pass only the movie name, not including the year. If the year is
+        present, remove it before calling.
     """
     row = await db.fetch_one(
         "SELECT year, rating FROM watchlist WHERE title = :title",
@@ -206,10 +219,13 @@ async def unwatch_movie(title: str) -> str:
 async def delete_movie(title: str) -> str:
     """
     Delete a movie from the watchlist.
+
     Args:
         title: Movie name (exclude year)
+
     Note:
-        Pass only the movie name, not including the year. If the year is present, remove it before calling.
+        Pass only the movie name, not including the year. If the year is
+        present, remove it before calling.
     """
     row = await db.fetch_one(
         "SELECT year, rating FROM watchlist WHERE title = :title",
