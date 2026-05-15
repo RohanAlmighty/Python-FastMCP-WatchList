@@ -32,8 +32,8 @@ async def test_show_watchlist_empty(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_summarize_watchlist_non_text(tmp_path):
-    """Test summarize_watchlist with non-text content."""
+async def test_summarize_watchlist_with_sampling_non_text(tmp_path):
+    """Test summarize_watchlist_with_sampling with non-text content."""
     orig = tools.get_all_movies
 
     async def async_movies():
@@ -75,10 +75,48 @@ async def test_summarize_watchlist_non_text(tmp_path):
             """Dummy method to avoid too-few-public-methods warning."""
             return None
 
-    result = await tools.summarize_watchlist(DummyCtx())
+    result = await tools.summarize_watchlist_with_sampling(DummyCtx())
     assert (
         "[Watchlist Summary]" in result and "[DummyContent]" in result
     )
+    tools.get_all_movies = orig
+
+
+@pytest.mark.asyncio
+async def test_summarize_watchlist_with_sampling_text(tmp_path):
+    """Test summarize_watchlist_with_sampling returns text content branch."""
+    orig = tools.get_all_movies
+
+    async def async_movies():
+        return ["Movie1 (2020)"]
+
+    tools.get_all_movies = staticmethod(async_movies)
+
+    class DummyContent:
+        """Dummy text content."""
+
+        type = "text"
+        text = "You like modern sci-fi thrillers."
+
+    class DummyMsg:
+        """Dummy message with text content."""
+
+        content = DummyContent()
+
+    class DummySession:
+        """Dummy session for create_message."""
+
+        @staticmethod
+        async def create_message(*_args, **_kwargs):
+            return DummyMsg()
+
+    class DummyCtx:
+        """Dummy context with session."""
+
+        session = DummySession()
+
+    result = await tools.summarize_watchlist_with_sampling(DummyCtx())
+    assert "You like modern sci-fi thrillers." in result
     tools.get_all_movies = orig
 
 
@@ -147,7 +185,7 @@ async def test_mark_watched_not_found(tmp_path):
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
-    result = await tools.mark_watched("Nonexistent", DummyCtx())
+    result = await tools.mark_watched_with_elicitation("Nonexistent", DummyCtx())
     assert "Movie not found in watchlist" in result
 
 
@@ -168,49 +206,38 @@ async def test_mark_watched_success(tmp_path):
     db.DB_PATH = str(test_db)
     await db.init_db()
     await tools.add_movie("WatchedMovie", 2023)
-    result = await tools.mark_watched("WatchedMovie", DummyCtx())
+    result = await tools.mark_watched_with_elicitation("WatchedMovie", DummyCtx())
     assert "Marked as watched: Title: WatchedMovie" in result and "Rating: 8.0" in result
 
 
 @pytest.mark.asyncio
-async def test_mark_watched_elicitation_disabled(tmp_path, monkeypatch):
-    """Test mark_watched skips elicitation when flag is disabled."""
-
-    class DummyCtx:
-        """Dummy context that must not be used for elicitation."""
-
-        async def elicit(self, *_args, **_kwargs):
-            raise AssertionError("elicit should not be called when disabled")
+async def test_mark_watched_with_rating_success(tmp_path):
+    """Test mark_watched_with_rating updates a movie with direct rating input."""
 
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
     await tools.add_movie("NoPromptMovie", 2024)
 
-    monkeypatch.setenv("ENABLE_ELICITATION", "false")
-    result = await tools.mark_watched("NoPromptMovie", DummyCtx())
+    result = await tools.mark_watched_with_rating("NoPromptMovie", 7.5)
     assert "Marked as watched: Title: NoPromptMovie" in result
-    assert "Rating: N/A" in result
+    assert "Rating: 7.5" in result
 
 
 @pytest.mark.asyncio
-async def test_mark_watched_elicitation_disabled_without_ctx(tmp_path, monkeypatch):
-    """Test mark_watched works without context when elicitation is disabled."""
+async def test_mark_watched_with_rating_not_found(tmp_path):
+    """Test mark_watched_with_rating returns not-found for missing movies."""
 
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
     await db.init_db()
-    await tools.add_movie("NoCtxMovie", 2024)
-
-    monkeypatch.setenv("ENABLE_ELICITATION", "false")
-    result = await tools.mark_watched("NoCtxMovie")
-    assert "Marked as watched: Title: NoCtxMovie" in result
-    assert "Rating: N/A" in result
+    result = await tools.mark_watched_with_rating("NoCtxMovie", 8.0)
+    assert "Movie not found in watchlist" in result
 
 
 @pytest.mark.asyncio
-async def test_mark_watched_rejects_direct_rating_arg(tmp_path):
-    """Test mark_watched does not accept rating as direct input."""
+async def test_mark_watched_with_elicitation_rejects_direct_rating_arg(tmp_path):
+    """Test elicitation variant rejects rating as unexpected direct input."""
 
     test_db = tmp_path / "test_watchlist.db"
     db.DB_PATH = str(test_db)
@@ -218,12 +245,12 @@ async def test_mark_watched_rejects_direct_rating_arg(tmp_path):
     await tools.add_movie("StrictInputMovie", 2024)
 
     with pytest.raises(TypeError):
-        await tools.mark_watched("StrictInputMovie", rating=9.0)
+        await tools.mark_watched_with_elicitation("StrictInputMovie", rating=9.0)
 
 
 @pytest.mark.asyncio
-async def test_summarize_watchlist_empty(tmp_path):
-    """Test summarize_watchlist with an empty watchlist."""
+async def test_summarize_watchlist_with_sampling_empty(tmp_path):
+    """Test summarize_watchlist_with_sampling with an empty watchlist."""
     class DummyCtx:
         """Dummy context for session."""
         session = type("Session", (), {"create_message": staticmethod(lambda **_kwargs: type("Msg", (), {"content": type("Content", (), {"type": "text", "text": "summary"})()})())})()
@@ -239,14 +266,14 @@ async def test_summarize_watchlist_empty(tmp_path):
     async def async_empty():
         return []
     tools.get_all_movies = staticmethod(async_empty)
-    result = await tools.summarize_watchlist(DummyCtx())
+    result = await tools.summarize_watchlist_with_sampling(DummyCtx())
     assert "watchlist is empty" in result.lower()
     tools.get_all_movies = orig
 
 
 @pytest.mark.asyncio
-async def test_summarize_watchlist_non_text_2(tmp_path):
-    """Test summarize_watchlist with non-text content (variant)."""
+async def test_summarize_watchlist_with_sampling_non_text_2(tmp_path):
+    """Test summarize_watchlist_with_sampling with non-text content (variant)."""
     class DummyContent:
         """Dummy content with non-text type."""
         type = "not_text"
@@ -277,7 +304,7 @@ async def test_summarize_watchlist_non_text_2(tmp_path):
     async def async_movies():
         return ["Movie"]
     tools.get_all_movies = staticmethod(async_movies)
-    result = await tools.summarize_watchlist(DummyCtx())
+    result = await tools.summarize_watchlist_with_sampling(DummyCtx())
     assert (
         "[Watchlist Summary]" in result and "[DummyContent]" in result
     )
@@ -309,7 +336,7 @@ async def test_summarize_watchlist_exception(tmp_path):
         return ["Title: Movie, Year: 2010, Watched: No, Rating: N/A"]
     tools.get_all_movies = staticmethod(async_movies)
     with pytest.raises(AttributeError):
-        await tools.summarize_watchlist(DummyCtx())
+        await tools.summarize_watchlist_with_sampling(DummyCtx())
     tools.get_all_movies = orig
 
 
@@ -347,23 +374,23 @@ async def test_summarize_watchlist_runtime_error_fallback(tmp_path):
 
     tools.get_all_movies = staticmethod(async_movies)
     with pytest.raises(RuntimeError):
-        await tools.summarize_watchlist(DummyCtx())
+        await tools.summarize_watchlist_with_sampling(DummyCtx())
     tools.get_all_movies = orig
 
 
 @pytest.mark.asyncio
-async def test_summarize_watchlist_sampling_disabled_via_env(tmp_path, monkeypatch):
-    """Test summarize_watchlist bypasses sampling when flag is disabled."""
+async def test_summarize_watchlist_without_sampling(tmp_path):
+    """Test summarize_watchlist_without_sampling returns deterministic overview."""
 
     class DummySession:
-        """Session that should not be called when sampling is disabled."""
+        """Unused dummy session."""
 
         @staticmethod
         async def create_message(*_args, **_kwargs):
             raise AssertionError("create_message should not be called")
 
     class DummyCtx:
-        """Dummy context with session."""
+        """Unused dummy context with session."""
 
         session = DummySession()
 
@@ -383,11 +410,28 @@ async def test_summarize_watchlist_sampling_disabled_via_env(tmp_path, monkeypat
             "Title: Two, Year: 2015, Watched: No, Rating: N/A",
         ]
 
-    monkeypatch.setenv("ENABLE_LLM_SAMPLING", "false")
     tools.get_all_movies = staticmethod(async_movies)
 
-    result = await tools.summarize_watchlist(DummyCtx())
+    result = await tools.summarize_watchlist_without_sampling()
     assert "Sampling is disabled or unavailable" in result
     assert "Title: One" in result
     assert "Title: Two" in result
+    tools.get_all_movies = orig
+
+
+@pytest.mark.asyncio
+async def test_summarize_watchlist_without_sampling_empty(tmp_path):
+    """Test summarize_watchlist_without_sampling empty watchlist branch."""
+    test_db = tmp_path / "test_watchlist.db"
+    db.DB_PATH = str(test_db)
+    await db.init_db()
+
+    orig = tools.get_all_movies
+
+    async def async_empty():
+        return []
+
+    tools.get_all_movies = staticmethod(async_empty)
+    result = await tools.summarize_watchlist_without_sampling()
+    assert "watchlist is empty" in result.lower()
     tools.get_all_movies = orig

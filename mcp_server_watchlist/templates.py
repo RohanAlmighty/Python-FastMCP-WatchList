@@ -23,8 +23,9 @@ def get_health_html(data):
     prompts_html = "".join(f'<div class="item">{prompt}</div>' for prompt in data.get("prompts", []))
     resources_html = "".join(f'<div class="item">{resource}</div>' for resource in data.get("resources", []))
     
-    return html_template.format(
-        tools_html=tools_html,
-        prompts_html=prompts_html,
-        resources_html=resources_html,
+    return (
+        html_template
+        .replace("{tools_html}", tools_html)
+        .replace("{prompts_html}", prompts_html)
+        .replace("{resources_html}", resources_html)
     )

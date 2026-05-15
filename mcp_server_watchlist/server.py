@@ -18,13 +18,26 @@ from mcp_server_watchlist.resources import (
 	get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
 )
 from mcp_server_watchlist.tools import (
-    add_movie, mark_watched, unwatch_movie, delete_movie, summarize_watchlist, show_watchlist
+    add_movie,
+    delete_movie,
+    mark_watched_with_elicitation,
+    mark_watched_with_rating,
+    show_watchlist,
+    summarize_watchlist_with_sampling,
+    summarize_watchlist_without_sampling,
+    unwatch_movie,
 )
 
 # Get host and port from environment variables, fallback to defaults
 HOST = str(os.environ.get("HOST", "127.0.0.1"))
 PORT = int(os.environ.get("PORT", 8000))
 mcp = FastMCP("Movie Watchlist MCP Server", host=HOST, port=PORT)
+
+
+def _is_enabled(env_var: str, default: str = "true") -> bool:
+    """Read a boolean feature flag from environment variables."""
+    raw = os.environ.get(env_var, default).strip().lower()
+    return raw in {"1", "true", "yes", "y", "on"}
 
 def setup_server():
     """Initialize the server, database, and register all tools, resources, and prompts."""
@@ -34,10 +47,20 @@ def setup_server():
     # Register tool functions
     mcp.tool()(add_movie)
     mcp.tool()(show_watchlist)
-    mcp.tool()(mark_watched)
     mcp.tool()(unwatch_movie)
     mcp.tool()(delete_movie)
-    mcp.tool()(summarize_watchlist)
+
+    # Resolve mark_watched tool schema at startup so clients/LLMs see one mode.
+    if _is_enabled("ENABLE_ELICITATION", "true"):
+        mcp.tool(name="mark_watched")(mark_watched_with_elicitation)
+    else:
+        mcp.tool(name="mark_watched")(mark_watched_with_rating)
+
+    # Resolve summarize_watchlist tool schema at startup so clients/LLMs see one mode.
+    if _is_enabled("ENABLE_LLM_SAMPLING", "true"):
+        mcp.tool(name="summarize_watchlist")(summarize_watchlist_with_sampling)
+    else:
+        mcp.tool(name="summarize_watchlist")(summarize_watchlist_without_sampling)
 
     # Register resource functions
     mcp.resource("watchlist://{title}")(get_movie)
