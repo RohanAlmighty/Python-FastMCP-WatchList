@@ -22,3 +22,9 @@ dependencies = [
 
 [project.scripts]
 mcp-server-watchlist = "mcp_server_watchlist.server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+mcp_server_watchlist = ["templates/*.html"]

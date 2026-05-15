@@ -1,6 +1,11 @@
 """HTML templates for the Movie Watchlist MCP Server."""
 
-import os
+from importlib import resources
+
+def _load_health_template() -> str:
+    """Load the health template from package data."""
+    template = resources.files("mcp_server_watchlist").joinpath("templates/health.html")
+    return template.read_text(encoding="utf-8")
 
 
 def get_health_html(data):
@@ -11,12 +16,7 @@ def get_health_html(data):
     Args:
         data: Dict with keys: status, service, tools, prompts, resources
     """
-    # Load template file
-    template_dir = os.path.dirname(__file__)
-    template_path = os.path.join(template_dir, "templates", "health.html")
-    
-    with open(template_path, "r") as f:
-        html_template = f.read()
+    html_template = _load_health_template()
     
     # Render data into template
     tools_html = "".join(f'<div class="item">{tool}</div>' for tool in data.get("tools", []))
