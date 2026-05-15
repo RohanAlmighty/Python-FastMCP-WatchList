@@ -108,6 +108,43 @@
             font-size: 12px;
             margin-top: 30px;
         }
+        /* Responsive styles for mobile */
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px;
+                max-width: 98vw;
+            }
+            .status {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .status-text {
+                font-size: 15px;
+            }
+            .section {
+                padding: 12px;
+                margin: 12px 0;
+            }
+            .section-title {
+                font-size: 12px;
+                padding-bottom: 6px;
+            }
+            .item-list {
+                gap: 4px;
+            }
+            .item {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            .db-status {
+                font-size: 13px;
+                padding: 5px 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -116,11 +153,8 @@
         <h1>Watchlist MCP Server</h1>
         <div class="status-text {status_class}">✓ {status_text}</div>
 
-        <div class="section">
-            <div class="section-title">Database</div>
-            <div class="db-status {database_status_class}">{database_status}</div>
-        </div>
-        
+        <div class="db-status {database_status_class}" style="display:block;margin:16px auto 0 auto;text-align:center;">{database_status}</div>
+
         <div class="section">
             <div class="section-title">Tools</div>
             <div class="item-list">

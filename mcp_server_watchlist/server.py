@@ -87,9 +87,10 @@ def setup_server():
 
 def get_health_data(db_connected: bool):
     """Return health check data."""
-    db_status = "Connected" if db_connected else "Disconnected"
+    db_status = "Database: Connected" if db_connected else "Database: Disconnected"
+    status = "healthy" if db_connected else "degraded"
     return {
-        "status": "healthy",
+        "status": status,
         "service": "Movie Watchlist MCP Server",
         "database": db_status,
         "database_connected": db_connected,

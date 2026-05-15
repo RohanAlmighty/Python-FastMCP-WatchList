@@ -111,7 +111,7 @@ def test_get_health_data_contains_expected_sections():
     """Test health payload includes tools, prompts, and resources metadata."""
     data = server.get_health_data(db_connected=True)
     assert data["status"] == "healthy"
-    assert data["database"] == "Connected"
+    assert data["database"] == "Database: Connected"
     assert data["database_connected"] is True
     assert "tools/show_watchlist" in data["tools"]
     assert "prompts/prompt_add_movie" in data["prompts"]
@@ -149,7 +149,7 @@ async def test_health_handler_returns_html(monkeypatch):
     monkeypatch.setattr(server, "get_health_html", lambda data: f"ok-{data['status']}")
     response = await server.health_handler(None)
     assert response.status_code == 200
-    assert response.body == b"ok-healthy"
+    assert response.body == b"ok-degraded"
 
 
 @pytest.mark.asyncio
@@ -163,8 +163,8 @@ async def test_health_json_handler_returns_json(monkeypatch):
 
     assert response.status_code == 200
     body = response.body.decode("utf-8")
-    assert '"status":"healthy"' in body
-    assert '"database":"Disconnected"' in body
+    assert '"status":"degraded"' in body
+    assert '"database":"Database: Disconnected"' in body
 
 
 def test_build_http_app_adds_routes_and_cors(monkeypatch):

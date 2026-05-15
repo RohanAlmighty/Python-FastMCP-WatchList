@@ -49,6 +49,25 @@ async def test_create_watchlist_retries_on_collision(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_create_watchlist_returns_db_error_when_insert_fails(monkeypatch):
+    """Test create_watchlist returns DB error when insert fails."""
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return None
+
+    async def fake_execute(*_args, **_kwargs):
+        return False
+
+    monkeypatch.setattr(tools, "generate_slug", lambda: "quiet-blue-panda")
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+    monkeypatch.setattr(db, "execute", fake_execute)
+
+    created = await tools.create_watchlist()
+
+    assert created == tools.DB_ERROR_MESSAGE
+
+
+@pytest.mark.asyncio
 async def test_show_watchlist_returns_items(monkeypatch):
     """Test show_watchlist returns formatted movie entries from resources."""
 
@@ -120,6 +139,22 @@ async def test_summarize_watchlist_with_sampling_empty(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_summarize_watchlist_with_sampling_not_found(monkeypatch):
+    """Test summarize_watchlist_with_sampling returns not-found response."""
+
+    async def async_not_found(watchlist_key):
+        return [f"Watchlist not found: '{watchlist_key}'."]
+
+    monkeypatch.setattr(tools, "get_all_movies", async_not_found)
+
+    class DummyCtx:
+        pass
+
+    result = await tools.summarize_watchlist_with_sampling("missing-list", DummyCtx())
+    assert result == "Watchlist not found: 'missing-list'."
+
+
+@pytest.mark.asyncio
 async def test_summarize_watchlist_with_sampling_non_text(monkeypatch):
     """Test summarize_watchlist_with_sampling with non-text response content."""
 
@@ -180,6 +215,19 @@ async def test_summarize_watchlist_without_sampling_empty(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_summarize_watchlist_without_sampling_not_found(monkeypatch):
+    """Test summarize_watchlist_without_sampling returns not-found response."""
+
+    async def async_not_found(watchlist_key):
+        return [f"Watchlist not found: '{watchlist_key}'."]
+
+    monkeypatch.setattr(tools, "get_all_movies", async_not_found)
+    result = await tools.summarize_watchlist_without_sampling("missing-list")
+
+    assert result == "Watchlist not found: 'missing-list'."
+
+
+@pytest.mark.asyncio
 async def test_add_and_delete_movie(tmp_path):
     """Test adding and deleting a movie."""
     await _setup_watchlist(tmp_path, "alpha-list")
@@ -200,6 +248,24 @@ async def test_add_movie_unknown_watchlist(tmp_path):
     result = await tools.add_movie("missing-list", "Inception", 2010)
 
     assert "Watchlist not found" in result
+
+
+@pytest.mark.asyncio
+async def test_add_movie_returns_db_error_when_insert_fails(monkeypatch):
+    """Test add_movie returns DB error when insert fails."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 123
+
+    async def fake_execute(*_args, **_kwargs):
+        return False
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "execute", fake_execute)
+
+    result = await tools.add_movie("alpha-list", "Inception", 2010)
+
+    assert result == tools.DB_ERROR_MESSAGE
 
 
 @pytest.mark.asyncio
@@ -254,3 +320,187 @@ async def test_mark_watched_with_rating_not_found(tmp_path):
     result = await tools.mark_watched_with_rating("alpha-list", "NoCtxMovie", 8.0)
 
     assert "Movie not found in watchlist" in result
+
+
+@pytest.mark.asyncio
+async def test_mark_watched_with_rating_unknown_watchlist(monkeypatch):
+    """Test mark_watched_with_rating returns watchlist-not-found for unknown keys."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+
+    result = await tools.mark_watched_with_rating("missing-list", "NoCtxMovie", 8.0)
+
+    assert result == "Watchlist not found: 'missing-list'."
+
+
+@pytest.mark.asyncio
+async def test_mark_watched_with_rating_returns_db_error_when_update_fails(monkeypatch):
+    """Test mark_watched_with_rating returns DB error when update fails."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 1
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return (2024,)
+
+    async def fake_execute(*_args, **_kwargs):
+        return False
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+    monkeypatch.setattr(db, "execute", fake_execute)
+
+    result = await tools.mark_watched_with_rating("alpha-list", "NoCtxMovie", 8.0)
+
+    assert result == tools.DB_ERROR_MESSAGE
+
+
+@pytest.mark.asyncio
+async def test_mark_watched_with_elicitation_unknown_watchlist(monkeypatch):
+    """Test elicitation variant returns not-found for unknown watchlists."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+
+    class DummyCtx:
+        async def elicit(self, *_args, **_kwargs):
+            return None
+
+    result = await tools.mark_watched_with_elicitation("missing-list", "Movie", DummyCtx())
+
+    assert result == "Watchlist not found: 'missing-list'."
+
+
+@pytest.mark.asyncio
+async def test_mark_watched_with_elicitation_movie_not_found(monkeypatch):
+    """Test elicitation variant returns not-found when movie is missing."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 1
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+
+    class DummyCtx:
+        async def elicit(self, *_args, **_kwargs):
+            return None
+
+    result = await tools.mark_watched_with_elicitation("alpha-list", "Missing", DummyCtx())
+
+    assert result == "Movie not found in watchlist: Title: Missing"
+
+
+@pytest.mark.asyncio
+async def test_unwatch_movie_unknown_watchlist(monkeypatch):
+    """Test unwatch_movie returns not-found for unknown watchlists."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+
+    result = await tools.unwatch_movie("missing-list", "Inception")
+
+    assert result == "Watchlist not found: 'missing-list'."
+
+
+@pytest.mark.asyncio
+async def test_unwatch_movie_not_found(monkeypatch):
+    """Test unwatch_movie returns movie-not-found when movie is missing."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 1
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+
+    result = await tools.unwatch_movie("alpha-list", "Missing")
+
+    assert result == "Movie not found in watchlist: Title: Missing"
+
+
+@pytest.mark.asyncio
+async def test_unwatch_movie_returns_db_error_when_update_fails(monkeypatch):
+    """Test unwatch_movie returns DB error when update fails."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 1
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return (2020, None)
+
+    async def fake_execute(*_args, **_kwargs):
+        return False
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+    monkeypatch.setattr(db, "execute", fake_execute)
+
+    result = await tools.unwatch_movie("alpha-list", "Inception")
+
+    assert result == tools.DB_ERROR_MESSAGE
+
+
+@pytest.mark.asyncio
+async def test_delete_movie_unknown_watchlist(monkeypatch):
+    """Test delete_movie returns not-found for unknown watchlists."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+
+    result = await tools.delete_movie("missing-list", "Inception")
+
+    assert result == "Watchlist not found: 'missing-list'."
+
+
+@pytest.mark.asyncio
+async def test_delete_movie_not_found(monkeypatch):
+    """Test delete_movie returns movie-not-found when movie is missing."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 1
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+
+    result = await tools.delete_movie("alpha-list", "Missing")
+
+    assert result == "Movie not found in watchlist: Title: Missing"
+
+
+@pytest.mark.asyncio
+async def test_delete_movie_returns_db_error_when_delete_fails(monkeypatch):
+    """Test delete_movie returns DB error when delete fails."""
+
+    async def fake_get_watchlist_id(*_args, **_kwargs):
+        return 1
+
+    async def fake_fetch_one(*_args, **_kwargs):
+        return (2010, 8.5)
+
+    async def fake_execute(*_args, **_kwargs):
+        return False
+
+    monkeypatch.setattr(db, "get_watchlist_id", fake_get_watchlist_id)
+    monkeypatch.setattr(db, "fetch_one", fake_fetch_one)
+    monkeypatch.setattr(db, "execute", fake_execute)
+
+    result = await tools.delete_movie("alpha-list", "Inception")
+
+    assert result == tools.DB_ERROR_MESSAGE

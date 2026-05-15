@@ -8,7 +8,7 @@ def test_get_health_html_renders_lists():
     data = {
         "status": "healthy",
         "service": "Movie Watchlist MCP Server",
-        "database": "Connected",
+        "database": "Database: Connected",
         "database_connected": True,
         "tools": ["tools/show_watchlist", "tools/mark_watched"],
         "prompts": ["prompts/prompt_add_movie"],
@@ -21,7 +21,7 @@ def test_get_health_html_renders_lists():
     assert "prompts/prompt_add_movie" in html
     assert "resources/watchlist://all" in html
     assert "Database" in html
-    assert "Connected" in html
+    assert "Database: Connected" in html
     assert '<div class="item">tools/mark_watched</div>' in html
 
 
