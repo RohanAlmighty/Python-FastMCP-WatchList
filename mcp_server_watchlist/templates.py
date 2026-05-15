@@ -22,6 +22,7 @@ def get_health_html(data):
     database_status = data.get("database", "Disconnected")
     database_connected = bool(data.get("database_connected", False))
     status_class = "status-healthy" if status.lower() == "healthy" else "status-degraded"
+    status_icon = "✓" if status.lower() == "healthy" else "!"
     database_status_class = "db-connected" if database_connected else "db-disconnected"
     
     # Render data into template
@@ -31,6 +32,7 @@ def get_health_html(data):
     
     return (
         html_template
+        .replace("{status_icon}", status_icon)
         .replace("{status_text}", status)
         .replace("{status_class}", status_class)
         .replace("{database_status}", database_status)
