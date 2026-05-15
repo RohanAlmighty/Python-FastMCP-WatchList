@@ -2,15 +2,17 @@
 """Database logic for the watchlist MCP server."""
 
 import os
+import logging
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from sqlalchemy import Column, Float, ForeignKey, Integer, MetaData, String, Table, UniqueConstraint, text
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import ArgumentError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 DB_PATH = "watchlist.db"
+logger = logging.getLogger(__name__)
 
 
 metadata = MetaData()
@@ -106,12 +108,16 @@ def _make_engine():
     return create_async_engine(url, connect_args=connect_args)
 
 
-async def _execute_with_engine(query: str, params: dict[str, Any] | None = None):
+async def _execute_with_engine(query: str, params: dict[str, Any] | None = None) -> bool:
     """Execute a statement inside a transaction."""
     engine = _make_engine()
     try:
         async with engine.begin() as conn:
-            return await conn.execute(text(query), params or {})
+            await conn.execute(text(query), params or {})
+            return True
+    except (SQLAlchemyError, OSError, RuntimeError):
+        logger.exception("Database write failed")
+        return False
     finally:
         await engine.dispose()
 
@@ -123,6 +129,9 @@ async def fetch_one(query: str, params: dict[str, Any] | None = None):
         async with engine.connect() as conn:
             result = await conn.execute(text(query), params or {})
             return result.fetchone()
+    except (SQLAlchemyError, OSError, RuntimeError):
+        logger.exception("Database read failed (fetch_one)")
+        return None
     finally:
         await engine.dispose()
 
@@ -134,13 +143,16 @@ async def fetch_all(query: str, params: dict[str, Any] | None = None):
         async with engine.connect() as conn:
             result = await conn.execute(text(query), params or {})
             return result.fetchall()
+    except (SQLAlchemyError, OSError, RuntimeError):
+        logger.exception("Database read failed (fetch_all)")
+        return []
     finally:
         await engine.dispose()
 
 
-async def execute(query: str, params: dict[str, Any] | None = None):
+async def execute(query: str, params: dict[str, Any] | None = None) -> bool:
     """Execute a write statement and commit."""
-    await _execute_with_engine(query, params)
+    return await _execute_with_engine(query, params)
 
 async def init_db():
     """Initialize the database and create all tables if they do not exist."""
@@ -148,8 +160,18 @@ async def init_db():
     try:
         async with engine.begin() as conn:
             await conn.run_sync(metadata.create_all)
+            return True
+    except (SQLAlchemyError, OSError, RuntimeError):
+        logger.exception("Database initialization failed")
+        return False
     finally:
         await engine.dispose()
+
+
+async def check_database_connection() -> bool:
+    """Return True when a simple DB read succeeds."""
+    row = await fetch_one("SELECT 1")
+    return row is not None
 
 
 async def get_watchlist_id(coolname: str) -> int | None:

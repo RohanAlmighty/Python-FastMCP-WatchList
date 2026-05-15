@@ -14,9 +14,15 @@ def get_health_html(data):
     Loads the health.html template and renders it with the provided data.
     
     Args:
-        data: Dict with keys: status, service, tools, prompts, resources
+        data: Dict with keys: status, service, database, database_connected,
+            tools, prompts, resources
     """
     html_template = _load_health_template()
+    status = data.get("status", "unknown").capitalize()
+    database_status = data.get("database", "Disconnected")
+    database_connected = bool(data.get("database_connected", False))
+    status_class = "status-healthy" if status.lower() == "healthy" else "status-degraded"
+    database_status_class = "db-connected" if database_connected else "db-disconnected"
     
     # Render data into template
     tools_html = "".join(f'<div class="item">{tool}</div>' for tool in data.get("tools", []))
@@ -25,6 +31,10 @@ def get_health_html(data):
     
     return (
         html_template
+        .replace("{status_text}", status)
+        .replace("{status_class}", status_class)
+        .replace("{database_status}", database_status)
+        .replace("{database_status_class}", database_status_class)
         .replace("{tools_html}", tools_html)
         .replace("{prompts_html}", prompts_html)
         .replace("{resources_html}", resources_html)

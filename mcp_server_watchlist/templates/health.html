@@ -45,10 +45,15 @@
             margin-bottom: 10px;
         }
         .status-text {
-            color: #81c784;
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 30px;
+        }
+        .status-healthy {
+            color: #81c784;
+        }
+        .status-degraded {
+            color: #ffb74d;
         }
         .section {
             background: #37474f;
@@ -80,6 +85,24 @@
             font-size: 12px;
             font-family: 'Courier New', monospace;
         }
+        .db-status {
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-family: 'Courier New', monospace;
+        }
+        .db-connected {
+            background: rgba(129, 199, 132, 0.15);
+            color: #81c784;
+            border: 1px solid rgba(129, 199, 132, 0.4);
+        }
+        .db-disconnected {
+            background: rgba(239, 83, 80, 0.15);
+            color: #ef5350;
+            border: 1px solid rgba(239, 83, 80, 0.45);
+        }
         .footer {
             color: #78909c;
             font-size: 12px;
@@ -91,7 +114,12 @@
     <div class="container">
         <div class="status">🎬</div>
         <h1>Watchlist MCP Server</h1>
-        <div class="status-text">✓ Healthy</div>
+        <div class="status-text {status_class}">✓ {status_text}</div>
+
+        <div class="section">
+            <div class="section-title">Database</div>
+            <div class="db-status {database_status_class}">{database_status}</div>
+        </div>
         
         <div class="section">
             <div class="section-title">Tools</div>
