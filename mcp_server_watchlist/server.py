@@ -5,9 +5,12 @@ import os
 import asyncio
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import HTMLResponse, JSONResponse
+from starlette.routing import Route
 
 from mcp.server.fastmcp import FastMCP
 from mcp_server_watchlist.db import init_db
+from mcp_server_watchlist.templates import get_health_html
 from mcp_server_watchlist.prompts import (
     prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched, prompt_show_watchlist
 )
@@ -50,9 +53,53 @@ def setup_server():
     mcp.prompt()(prompt_show_watchlist)
 
 
+def get_health_data():
+    """Return health check data."""
+    return {
+        "status": "healthy",
+        "service": "Movie Watchlist MCP Server",
+        "tools": [
+            "tools/show_watchlist",
+            "tools/add_movie",
+            "tools/mark_watched",
+            "tools/unwatch_movie",
+            "tools/delete_movie",
+            "tools/summarize_watchlist",
+        ],
+        "prompts": [
+            "prompts/prompt_add_movie",
+            "prompts/prompt_unwatch_movie",
+            "prompts/prompt_delete_movie",
+            "prompts/prompt_mark_watched",
+            "prompts/prompt_show_watchlist",
+        ],
+        "resources": [
+            "resources/watchlist://{title}",
+            "resources/watchlist://all",
+            "resources/watchlist://unwatched",
+            "resources/watchlist://watched",
+        ],
+    }
+
+
+async def health_handler(request):
+    """Handle health check requests (returns HTML)."""
+    data = get_health_data()
+    return HTMLResponse(get_health_html(data))
+
+
+async def health_json_handler(request):
+    """Handle health check API requests (returns JSON)."""
+    return JSONResponse(get_health_data())
+
+
 def build_http_app():
     """Build the ASGI app and add CORS support for browser-based MCP clients."""
     app = mcp.streamable_http_app()
+
+    # Add health check routes
+    app.router.routes.append(Route("/health", health_handler, methods=["GET"]))
+    app.router.routes.append(Route("/health/json", health_json_handler, methods=["GET"]))
 
     allow_origins_raw = os.environ.get("CORS_ALLOW_ORIGINS", "*")
     allow_origins = [origin.strip() for origin in allow_origins_raw.split(",") if origin.strip()]

@@ -41,7 +41,7 @@ Each movie includes:
 
 ### Tools
 
-- `show_watchlist()` - Return all watchlist entries as formatted rows.
+- `show_watchlist()` - Return all watchlist entries as a plain list of movie strings.
 - `add_movie(title: str, year: int)` - Add a movie to the watchlist.
 - `mark_watched(title: str)` - Mark a movie as watched (elicits a rating from the user).
 - `unwatch_movie(title: str)` - Mark a movie as unwatched (removes rating).
@@ -61,8 +61,9 @@ Each movie includes:
 - `prompt_unwatch_movie(title: str)` - Prompt to mark a movie as unwatched.
 - `prompt_delete_movie(title: str)` - Prompt to delete a movie.
 - `prompt_mark_watched(title: str)` - Prompt to mark a movie as watched.
+- `prompt_show_watchlist()` - Prompt to show your full movie watchlist.
 
-All tools and resources return formatted strings with title, year, watched status, and rating (if available). Elicitation is used where additional user input is required.
+Most tools and resources return formatted strings with title, year, watched status, and rating (if available). `show_watchlist()` returns a plain list of movie strings. Elicitation is used where additional user input is required.
 
 ## Requirements
 
@@ -143,12 +144,31 @@ Note: Inspector requires Node.js. See [MCP Inspector documentation](https://gith
 
 ## Endpoints and Testing
 
+### MCP Inspector
+
 Use **MCP Inspector** as a web interface for interacting with tools, resources, and prompts.
 
 How to use MCP Inspector:
 
 1. Start your server and the Inspector (see Getting Started).
 2. Open the Inspector UI (usually http://localhost:6274) and invoke tools, resources, and prompts interactively.
+
+### Health Check Endpoints
+
+The server provides lightweight health check endpoints to verify it is running and see available capabilities:
+
+- **`/health`** - Returns a styled HTML dashboard displaying server status, all available tools, prompts, and resources. Visit in your browser at `http://localhost:8000/health`.
+- **`/health/json`** - Returns a JSON response with server status and complete list of tools, prompts, and resources. Useful for monitoring and automated checks.
+
+Example curl commands:
+
+```bash
+# HTML health dashboard
+curl http://localhost:8000/health
+
+# JSON API health check
+curl http://localhost:8000/health/json | jq
+```
 
 ---
 
