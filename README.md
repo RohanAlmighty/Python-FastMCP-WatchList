@@ -30,12 +30,19 @@ Collect extra input when needed. Example: when marking a movie as watched, the s
 
 ### Database Schema
 
-Each movie includes:
+The server stores data across two tables:
 
-- `title` (`str`)
-- `year` (`int`)
-- `watched` (`bool`)
-- `rating` (`float`, optional, out of 10)
+- `watchlists`
+  - `id` (`int`, primary key)
+  - `coolname` (`str`, unique)
+- `watchlist`
+  - `watchlist_id` (`int`, foreign key to `watchlists.id`)
+  - `title` (`str`)
+  - `year` (`int`)
+  - `watched` (`bool`)
+  - `rating` (`float`, optional, out of 10)
+
+Tools refer to a watchlist using `watchlist_key` (the generated coolname).
 
 ### Database Connectivity
 
@@ -48,23 +55,24 @@ Each movie includes:
 
 ### Tools
 
-- `show_watchlist()` - Return all watchlist entries as a plain list of movie strings.
-- `add_movie(title: str, year: int)` - Add a movie to the watchlist.
+- `create_watchlist() -> str` - Create a watchlist and return a generated `watchlist_key`.
+- `show_watchlist(watchlist_key: str)` - Return entries for one watchlist as a plain list.
+- `add_movie(watchlist_key: str, title: str, year: int)` - Add a movie to a watchlist.
 - `mark_watched(...)` - Mark a movie as watched (signature depends on `ENABLE_ELICITATION`):
-  - `mark_watched(title: str)` when elicitation is enabled.
-  - `mark_watched(title: str, rating: float)` when elicitation is disabled.
-- `unwatch_movie(title: str)` - Mark a movie as unwatched (removes rating).
-- `delete_movie(title: str)` - Delete a movie from the watchlist.
-- `summarize_watchlist(...)` - Summarize your watchlist (signature depends on `ENABLE_LLM_SAMPLING`):
-  - `summarize_watchlist(ctx)` when sampling is enabled.
-  - `summarize_watchlist()` when sampling is disabled (local deterministic summary).
+  - `mark_watched(watchlist_key: str, title: str)` when elicitation is enabled.
+  - `mark_watched(watchlist_key: str, title: str, rating: float)` when elicitation is disabled.
+- `unwatch_movie(watchlist_key: str, title: str)` - Mark a movie as unwatched (removes rating).
+- `delete_movie(watchlist_key: str, title: str)` - Delete a movie from a watchlist.
+- `summarize_watchlist(...)` - Summarize one watchlist (signature depends on `ENABLE_LLM_SAMPLING`):
+  - `summarize_watchlist(watchlist_key: str, ctx)` when sampling is enabled.
+  - `summarize_watchlist(watchlist_key: str)` when sampling is disabled.
 
 ### Resources
 
-- `watchlist://{title}` - Get details of a movie by title.
-- `watchlist://all` - Get all movies in the watchlist.
-- `watchlist://unwatched` - Get all unwatched movies.
-- `watchlist://watched` - Get all watched movies.
+- `watchlist://{watchlist_key}/movie/{title}` - Get details of a movie by title for one watchlist.
+- `watchlist://{watchlist_key}/all` - Get all movies for one watchlist.
+- `watchlist://{watchlist_key}/unwatched` - Get unwatched movies for one watchlist.
+- `watchlist://{watchlist_key}/watched` - Get watched movies for one watchlist.
 
 ### Prompts
 
@@ -74,19 +82,19 @@ Each movie includes:
 - `prompt_mark_watched(title: str)` - Prompt to mark a movie as watched.
 - `prompt_show_watchlist()` - Prompt to show your full movie watchlist.
 
-Most tools and resources return formatted strings with title, year, watched status, and rating (if available). `show_watchlist()` returns a plain list of movie strings. Elicitation is used where additional user input is required.
+Most tools and resources return formatted strings with title, year, watched status, and rating (if available). `show_watchlist(watchlist_key)` returns a plain list of movie strings. Elicitation is used where additional user input is required.
 
 ### Runtime Feature Flags
 
 Set these before starting the server:
 
 ```bash
-# true (default) -> mark_watched uses elicitation flow
-# false -> mark_watched requires a direct rating argument
+# true (default) -> mark_watched(watchlist_key, title) uses elicitation flow
+# false -> mark_watched(watchlist_key, title, rating) requires direct rating argument
 export ENABLE_ELICITATION=true
 
-# true (default) -> summarize_watchlist uses LLM sampling
-# false -> summarize_watchlist returns deterministic local summary
+# true (default) -> summarize_watchlist(watchlist_key, ctx) uses LLM sampling
+# false -> summarize_watchlist(watchlist_key) returns deterministic local summary
 export ENABLE_LLM_SAMPLING=true
 ```
 

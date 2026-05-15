@@ -5,15 +5,46 @@ from mcp_server_watchlist import db
 
 
 @pytest.mark.asyncio
-async def test_init_db_creates_table(tmp_path):
-    """Test that init_db creates the watchlist table in the database."""
+async def test_init_db_creates_tables(tmp_path):
+    """Test that init_db creates watchlists and watchlist tables."""
     orig_path = db.DB_PATH
     db.DB_PATH = str(tmp_path / "test_watchlist.db")
     await db.init_db()
-    row = await db.fetch_one(
+    row_watchlists = await db.fetch_one(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='watchlists'"
+    )
+    row_watchlist = await db.fetch_one(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='watchlist'"
     )
-    assert row is not None
+    assert row_watchlists is not None
+    assert row_watchlist is not None
+    db.DB_PATH = orig_path
+
+
+@pytest.mark.asyncio
+async def test_get_watchlist_id_returns_expected_value(tmp_path):
+    """Test get_watchlist_id returns the created row id for an existing key."""
+    orig_path = db.DB_PATH
+    db.DB_PATH = str(tmp_path / "test_watchlist.db")
+    await db.init_db()
+    await db.execute(
+        "INSERT INTO watchlists (coolname) VALUES (:coolname)",
+        {"coolname": "alpha-list"},
+    )
+    wid = await db.get_watchlist_id("alpha-list")
+    assert isinstance(wid, int)
+    assert wid > 0
+    db.DB_PATH = orig_path
+
+
+@pytest.mark.asyncio
+async def test_get_watchlist_id_missing_returns_none(tmp_path):
+    """Test get_watchlist_id returns None for unknown keys."""
+    orig_path = db.DB_PATH
+    db.DB_PATH = str(tmp_path / "test_watchlist.db")
+    await db.init_db()
+    wid = await db.get_watchlist_id("missing-list")
+    assert wid is None
     db.DB_PATH = orig_path
 
 

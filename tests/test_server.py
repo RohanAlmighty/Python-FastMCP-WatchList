@@ -14,23 +14,8 @@ def test_server_main(monkeypatch):
     """Test that server.main starts the ASGI app with uvicorn."""
     called = {}
 
-    def fake_build_http_app():
-        called["build_http_app"] = True
-        return object()
-
-    def fake_uvicorn_run(app, host, port):
-        called["uvicorn_run"] = (app, host, port)
-
-    monkeypatch.setattr(server, "build_http_app", fake_build_http_app)
-    monkeypatch.setattr(server.uvicorn, "run", fake_uvicorn_run)
-    server.main()
-    assert called.get("build_http_app")
-    assert "uvicorn_run" in called
-
-
-def test_server_main_block(monkeypatch):
-    """Test that server.main can be called as if __name__ == '__main__'."""
-    called = {}
+    def fake_setup_server():
+        called["setup_server"] = True
 
     def fake_build_http_app():
         called["build_http_app"] = True
@@ -39,9 +24,11 @@ def test_server_main_block(monkeypatch):
     def fake_uvicorn_run(app, host, port):
         called["uvicorn_run"] = (app, host, port)
 
+    monkeypatch.setattr(server, "setup_server", fake_setup_server)
     monkeypatch.setattr(server, "build_http_app", fake_build_http_app)
     monkeypatch.setattr(server.uvicorn, "run", fake_uvicorn_run)
     server.main()
+    assert called.get("setup_server")
     assert called.get("build_http_app")
     assert "uvicorn_run" in called
 
@@ -90,6 +77,7 @@ def test_setup_server_registers_elicitation_and_sampling_variants(monkeypatch):
     server.setup_server()
 
     registered = dict(fake_mcp.tools)
+    assert "create_watchlist" in registered
     assert registered["mark_watched"] == "mark_watched_with_elicitation"
     assert registered["summarize_watchlist"] == "summarize_watchlist_with_sampling"
 
@@ -125,7 +113,7 @@ def test_get_health_data_contains_expected_sections():
     assert data["status"] == "healthy"
     assert "tools/show_watchlist" in data["tools"]
     assert "prompts/prompt_add_movie" in data["prompts"]
-    assert "resources/watchlist://all" in data["resources"]
+    assert "resources/watchlist://{watchlist_key}/all" in data["resources"]
 
 
 @pytest.mark.asyncio

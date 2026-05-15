@@ -19,6 +19,7 @@ from mcp_server_watchlist.resources import (
 )
 from mcp_server_watchlist.tools import (
     add_movie,
+    create_watchlist,
     delete_movie,
     mark_watched_with_elicitation,
     mark_watched_with_rating,
@@ -45,6 +46,7 @@ def setup_server():
     asyncio.run(init_db())
 
     # Register tool functions
+    mcp.tool()(create_watchlist)
     mcp.tool()(add_movie)
     mcp.tool()(show_watchlist)
     mcp.tool()(unwatch_movie)
@@ -63,10 +65,10 @@ def setup_server():
         mcp.tool(name="summarize_watchlist")(summarize_watchlist_without_sampling)
 
     # Register resource functions
-    mcp.resource("watchlist://{title}")(get_movie)
-    mcp.resource("watchlist://all")(get_all_movies)
-    mcp.resource("watchlist://unwatched")(get_unwatched_movies)
-    mcp.resource("watchlist://watched")(get_watched_movies)
+    mcp.resource("watchlist://{watchlist_key}/all")(get_all_movies)
+    mcp.resource("watchlist://{watchlist_key}/watched")(get_watched_movies)
+    mcp.resource("watchlist://{watchlist_key}/unwatched")(get_unwatched_movies)
+    mcp.resource("watchlist://{watchlist_key}/movie/{title}")(get_movie)
 
     # Register prompt functions
     mcp.prompt()(prompt_add_movie)
@@ -82,6 +84,7 @@ def get_health_data():
         "status": "healthy",
         "service": "Movie Watchlist MCP Server",
         "tools": [
+            "tools/create_watchlist",
             "tools/show_watchlist",
             "tools/add_movie",
             "tools/mark_watched",
@@ -97,10 +100,10 @@ def get_health_data():
             "prompts/prompt_show_watchlist",
         ],
         "resources": [
-            "resources/watchlist://{title}",
-            "resources/watchlist://all",
-            "resources/watchlist://unwatched",
-            "resources/watchlist://watched",
+            "resources/watchlist://{watchlist_key}/all",
+            "resources/watchlist://{watchlist_key}/watched",
+            "resources/watchlist://{watchlist_key}/unwatched",
+            "resources/watchlist://{watchlist_key}/movie/{title}",
         ],
     }
 
