@@ -17,9 +17,16 @@ Watch the project in action:
 
 Generate friendly, AI-powered summaries of your watchlist. The `summarize_watchlist` tool uses LLM sampling to send your movie list to a language model and returns a brief, insightful summary. It can highlight genres, trends, or fun patterns in your collection.
 
+- `ENABLE_LLM_SAMPLING=true` (default): uses LLM sampling via MCP context.
+- `ENABLE_LLM_SAMPLING=false`: returns a deterministic local overview without calling sampling.
+
 ### Elicitation
 
 Collect extra input when needed. Example: when marking a movie as watched, the server can prompt the user for a rating (out of 10) using an elicitation flow. This behavior is showcased in `mark_watched`.
+
+- `ENABLE_ELICITATION=true` (default): `mark_watched` asks for rating via elicitation.
+- `ENABLE_ELICITATION=false`: `mark_watched` expects a direct `rating` argument.
+- Rating validation is enforced in the range `0-10`.
 
 ### Database Schema
 
@@ -43,10 +50,14 @@ Each movie includes:
 
 - `show_watchlist()` - Return all watchlist entries as a plain list of movie strings.
 - `add_movie(title: str, year: int)` - Add a movie to the watchlist.
-- `mark_watched(title: str)` - Mark a movie as watched (elicits a rating from the user).
+- `mark_watched(...)` - Mark a movie as watched (signature depends on `ENABLE_ELICITATION`):
+  - `mark_watched(title: str)` when elicitation is enabled.
+  - `mark_watched(title: str, rating: float)` when elicitation is disabled.
 - `unwatch_movie(title: str)` - Mark a movie as unwatched (removes rating).
 - `delete_movie(title: str)` - Delete a movie from the watchlist.
-- `summarize_watchlist()` - Get a friendly, LLM-generated summary of your watchlist (uses LLM sampling).
+- `summarize_watchlist(...)` - Summarize your watchlist (signature depends on `ENABLE_LLM_SAMPLING`):
+  - `summarize_watchlist(ctx)` when sampling is enabled.
+  - `summarize_watchlist()` when sampling is disabled (local deterministic summary).
 
 ### Resources
 
@@ -64,6 +75,20 @@ Each movie includes:
 - `prompt_show_watchlist()` - Prompt to show your full movie watchlist.
 
 Most tools and resources return formatted strings with title, year, watched status, and rating (if available). `show_watchlist()` returns a plain list of movie strings. Elicitation is used where additional user input is required.
+
+### Runtime Feature Flags
+
+Set these before starting the server:
+
+```bash
+# true (default) -> mark_watched uses elicitation flow
+# false -> mark_watched requires a direct rating argument
+export ENABLE_ELICITATION=true
+
+# true (default) -> summarize_watchlist uses LLM sampling
+# false -> summarize_watchlist returns deterministic local summary
+export ENABLE_LLM_SAMPLING=true
+```
 
 ## Requirements
 
@@ -159,6 +184,8 @@ The server provides lightweight health check endpoints to verify it is running a
 
 - **`/health`** - Returns a styled HTML dashboard displaying server status, all available tools, prompts, and resources. Visit in your browser at `http://localhost:8000/health`.
 - **`/health/json`** - Returns a JSON response with server status and complete list of tools, prompts, and resources. Useful for monitoring and automated checks.
+
+The HTML health page is packaged with the application and loaded from package resources, so it works in local editable mode and installed CLI mode.
 
 Example curl commands:
 
