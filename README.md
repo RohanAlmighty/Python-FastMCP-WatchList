@@ -17,18 +17,32 @@ Watch the project in action:
 
 Generate friendly, AI-powered summaries of your watchlist. The `summarize_watchlist` tool uses LLM sampling to send your movie list to a language model and returns a brief, insightful summary. It can highlight genres, trends, or fun patterns in your collection.
 
+- `ENABLE_LLM_SAMPLING=true` (default): uses LLM sampling via MCP context.
+- `ENABLE_LLM_SAMPLING=false`: returns a deterministic local overview without calling sampling.
+
 ### Elicitation
 
 Collect extra input when needed. Example: when marking a movie as watched, the server can prompt the user for a rating (out of 10) using an elicitation flow. This behavior is showcased in `mark_watched`.
 
+- `ENABLE_ELICITATION=true` (default): `mark_watched` asks for rating via elicitation.
+- `ENABLE_ELICITATION=false`: `mark_watched` expects a direct `rating` argument.
+- Rating validation is enforced in the range `0-10`.
+
 ### Database Schema
 
-Each movie includes:
+The server stores data across two tables:
 
-- `title` (`str`)
-- `year` (`int`)
-- `watched` (`bool`)
-- `rating` (`float`, optional, out of 10)
+- `watchlists`
+  - `id` (`int`, primary key)
+  - `coolname` (`str`, unique)
+- `watchlist`
+  - `watchlist_id` (`int`, foreign key to `watchlists.id`)
+  - `title` (`str`)
+  - `year` (`int`)
+  - `watched` (`bool`)
+  - `rating` (`float`, optional, out of 10)
+
+Tools refer to a watchlist using `watchlist_key` (the generated coolname).
 
 ### Database Connectivity
 
@@ -41,19 +55,24 @@ Each movie includes:
 
 ### Tools
 
-- `show_watchlist()` - Return all watchlist entries as formatted rows.
-- `add_movie(title: str, year: int)` - Add a movie to the watchlist.
-- `mark_watched(title: str)` - Mark a movie as watched (elicits a rating from the user).
-- `unwatch_movie(title: str)` - Mark a movie as unwatched (removes rating).
-- `delete_movie(title: str)` - Delete a movie from the watchlist.
-- `summarize_watchlist()` - Get a friendly, LLM-generated summary of your watchlist (uses LLM sampling).
+- `create_watchlist() -> str` - Create a watchlist and return a generated `watchlist_key`.
+- `show_watchlist(watchlist_key: str)` - Return entries for one watchlist as a plain list.
+- `add_movie(watchlist_key: str, title: str, year: int)` - Add a movie to a watchlist.
+- `mark_watched(...)` - Mark a movie as watched (signature depends on `ENABLE_ELICITATION`):
+  - `mark_watched(watchlist_key: str, title: str)` when elicitation is enabled.
+  - `mark_watched(watchlist_key: str, title: str, rating: float)` when elicitation is disabled.
+- `unwatch_movie(watchlist_key: str, title: str)` - Mark a movie as unwatched (removes rating).
+- `delete_movie(watchlist_key: str, title: str)` - Delete a movie from a watchlist.
+- `summarize_watchlist(...)` - Summarize one watchlist (signature depends on `ENABLE_LLM_SAMPLING`):
+  - `summarize_watchlist(watchlist_key: str, ctx)` when sampling is enabled.
+  - `summarize_watchlist(watchlist_key: str)` when sampling is disabled.
 
 ### Resources
 
-- `watchlist://{title}` - Get details of a movie by title.
-- `watchlist://all` - Get all movies in the watchlist.
-- `watchlist://unwatched` - Get all unwatched movies.
-- `watchlist://watched` - Get all watched movies.
+- `watchlist://{watchlist_key}/movie/{title}` - Get details of a movie by title for one watchlist.
+- `watchlist://{watchlist_key}/all` - Get all movies for one watchlist.
+- `watchlist://{watchlist_key}/unwatched` - Get unwatched movies for one watchlist.
+- `watchlist://{watchlist_key}/watched` - Get watched movies for one watchlist.
 
 ### Prompts
 
@@ -61,8 +80,23 @@ Each movie includes:
 - `prompt_unwatch_movie(title: str)` - Prompt to mark a movie as unwatched.
 - `prompt_delete_movie(title: str)` - Prompt to delete a movie.
 - `prompt_mark_watched(title: str)` - Prompt to mark a movie as watched.
+- `prompt_show_watchlist()` - Prompt to show your full movie watchlist.
 
-All tools and resources return formatted strings with title, year, watched status, and rating (if available). Elicitation is used where additional user input is required.
+Most tools and resources return formatted strings with title, year, watched status, and rating (if available). `show_watchlist(watchlist_key)` returns a plain list of movie strings. Elicitation is used where additional user input is required.
+
+### Runtime Feature Flags
+
+Set these before starting the server:
+
+```bash
+# true (default) -> mark_watched(watchlist_key, title) uses elicitation flow
+# false -> mark_watched(watchlist_key, title, rating) requires direct rating argument
+export ENABLE_ELICITATION=true
+
+# true (default) -> summarize_watchlist(watchlist_key, ctx) uses LLM sampling
+# false -> summarize_watchlist(watchlist_key) returns deterministic local summary
+export ENABLE_LLM_SAMPLING=true
+```
 
 ## Requirements
 
@@ -143,12 +177,33 @@ Note: Inspector requires Node.js. See [MCP Inspector documentation](https://gith
 
 ## Endpoints and Testing
 
+### MCP Inspector
+
 Use **MCP Inspector** as a web interface for interacting with tools, resources, and prompts.
 
 How to use MCP Inspector:
 
 1. Start your server and the Inspector (see Getting Started).
 2. Open the Inspector UI (usually http://localhost:6274) and invoke tools, resources, and prompts interactively.
+
+### Health Check Endpoints
+
+The server provides lightweight health check endpoints to verify it is running and see available capabilities:
+
+- **`/health`** - Returns a styled HTML dashboard displaying server status, all available tools, prompts, and resources. Visit in your browser at `http://localhost:8000/health`.
+- **`/health/json`** - Returns a JSON response with server status and complete list of tools, prompts, and resources. Useful for monitoring and automated checks.
+
+The HTML health page is packaged with the application and loaded from package resources, so it works in local editable mode and installed CLI mode.
+
+Example curl commands:
+
+```bash
+# HTML health dashboard
+curl http://localhost:8000/health
+
+# JSON API health check
+curl http://localhost:8000/health/json | jq
+```
 
 ---
 
