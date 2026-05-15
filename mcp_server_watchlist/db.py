@@ -5,21 +5,29 @@ import os
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from sqlalchemy import Column, Float, Integer, MetaData, String, Table, text
+from sqlalchemy import Column, Float, ForeignKey, Integer, MetaData, String, Table, UniqueConstraint, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 DB_PATH = "watchlist.db"
 
 
 metadata = MetaData()
+watchlists = Table(
+    "watchlists",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("coolname", String, nullable=False, unique=True),
+)
 watchlist = Table(
     "watchlist",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("watchlist_id", Integer, ForeignKey("watchlists.id"), nullable=False),
     Column("title", String, nullable=False),
     Column("year", Integer),
     Column("watched", Integer, default=0),
     Column("rating", Float),
+    UniqueConstraint("watchlist_id", "title"),
 )
 
 
@@ -99,10 +107,19 @@ async def execute(query: str, params: dict[str, Any] | None = None):
     await _execute_with_engine(query, params)
 
 async def init_db():
-    """Initialize the database and create the watchlist table if it does not exist."""
+    """Initialize the database and create all tables if they do not exist."""
     engine = _make_engine()
     try:
         async with engine.begin() as conn:
             await conn.run_sync(metadata.create_all)
     finally:
         await engine.dispose()
+
+
+async def get_watchlist_id(coolname: str) -> int | None:
+    """Return the watchlist id for the given coolname, or None if not found."""
+    row = await fetch_one(
+        "SELECT id FROM watchlists WHERE coolname = :coolname",
+        {"coolname": coolname},
+    )
+    return row[0] if row else None

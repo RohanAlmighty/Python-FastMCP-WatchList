@@ -6,33 +6,53 @@ import urllib.parse
 from typing import List
 from mcp_server_watchlist import db
 
-async def get_movie(title: str) -> str:
-    """Get details of a movie from the watchlist."""
+async def get_movie(watchlist_key: str, title: str) -> str:
+    """Get details of a movie from a named watchlist."""
+    watchlist_id = await db.get_watchlist_id(watchlist_key)
+    if watchlist_id is None:
+        return f"Watchlist not found: '{watchlist_key}'."
     decoded_title = urllib.parse.unquote(title)
     row = await db.fetch_one(
-        "SELECT title, year, watched, rating FROM watchlist WHERE title = :title",
-        {"title": decoded_title},
+        "SELECT title, year, watched, rating FROM watchlist "
+        "WHERE watchlist_id = :wid AND title = :title",
+        {"wid": watchlist_id, "title": decoded_title},
     )
     if row:
         return format_movie_row(row)
     return "Movie not found in watchlist."
 
-async def get_all_movies() -> List[str]:
-    """Get all movies in the watchlist."""
-    rows = await db.fetch_all("SELECT title, year, watched, rating FROM watchlist")
-    return [format_movie_row(row) for row in rows]
-
-async def get_unwatched_movies() -> List[str]:
-    """Get all unwatched movies in the watchlist."""
+async def get_all_movies(watchlist_key: str) -> List[str]:
+    """Get all movies in a named watchlist."""
+    watchlist_id = await db.get_watchlist_id(watchlist_key)
+    if watchlist_id is None:
+        return [f"Watchlist not found: '{watchlist_key}'."]
     rows = await db.fetch_all(
-        "SELECT title, year, watched, rating FROM watchlist WHERE watched = 0"
+        "SELECT title, year, watched, rating FROM watchlist WHERE watchlist_id = :wid",
+        {"wid": watchlist_id},
     )
     return [format_movie_row(row) for row in rows]
 
-async def get_watched_movies() -> List[str]:
-    """Get all watched movies in the watchlist."""
+async def get_unwatched_movies(watchlist_key: str) -> List[str]:
+    """Get all unwatched movies in a named watchlist."""
+    watchlist_id = await db.get_watchlist_id(watchlist_key)
+    if watchlist_id is None:
+        return [f"Watchlist not found: '{watchlist_key}'."]
     rows = await db.fetch_all(
-        "SELECT title, year, watched, rating FROM watchlist WHERE watched = 1"
+        "SELECT title, year, watched, rating FROM watchlist "
+        "WHERE watchlist_id = :wid AND watched = 0",
+        {"wid": watchlist_id},
+    )
+    return [format_movie_row(row) for row in rows]
+
+async def get_watched_movies(watchlist_key: str) -> List[str]:
+    """Get all watched movies in a named watchlist."""
+    watchlist_id = await db.get_watchlist_id(watchlist_key)
+    if watchlist_id is None:
+        return [f"Watchlist not found: '{watchlist_key}'."]
+    rows = await db.fetch_all(
+        "SELECT title, year, watched, rating FROM watchlist "
+        "WHERE watchlist_id = :wid AND watched = 1",
+        {"wid": watchlist_id},
     )
     return [format_movie_row(row) for row in rows]
 

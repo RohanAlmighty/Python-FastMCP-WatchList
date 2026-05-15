@@ -11,6 +11,7 @@ dependencies = [
     "aiosqlite>=0.21.0",
     "aiomysql>=0.2.0",
     "asyncpg>=0.30.0",
+    "coolname>=2.2.0",
     "greenlet>=3.2.2",
     "mcp[cli]>=1.23.3",
     "pylint>=4.0.4",
@@ -22,3 +23,9 @@ dependencies = [
 
 [project.scripts]
 mcp-server-watchlist = "mcp_server_watchlist.server:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+mcp_server_watchlist = ["templates/*.html"]
