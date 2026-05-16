@@ -109,29 +109,62 @@ def test_is_enabled_parses_truthy_and_falsey(monkeypatch):
 
 def test_get_health_data_contains_expected_sections():
     """Test health payload includes tools, prompts, and resources metadata."""
-    data = server.get_health_data()
+    data = server.get_health_data(db_connected=True)
     assert data["status"] == "healthy"
+    assert data["database"] == "Database: Connected"
+    assert data["database_connected"] is True
     assert "tools/show_watchlist" in data["tools"]
     assert "prompts/prompt_add_movie" in data["prompts"]
     assert "resources/watchlist://{watchlist_key}/all" in data["resources"]
 
 
+def test_setup_server_does_not_crash_when_init_db_fails(monkeypatch):
+    """setup_server should continue registering handlers even if DB init fails."""
+    fake_mcp = _FakeMCP()
+    monkeypatch.setattr(server, "mcp", fake_mcp)
+
+    async def failing_init_db():
+        raise RuntimeError("db unavailable")
+
+    def fake_run(_coro):
+        raise RuntimeError("db unavailable")
+
+    monkeypatch.setattr(server, "init_db", failing_init_db)
+    monkeypatch.setattr(server.asyncio, "run", fake_run)
+
+    # Should not raise.
+    server.setup_server()
+
+    registered = dict(fake_mcp.tools)
+    assert "create_watchlist" in registered
+
+
 @pytest.mark.asyncio
 async def test_health_handler_returns_html(monkeypatch):
     """Test health_handler renders HTML using template data."""
+    async def fake_check_database_connection():
+        return False
+
+    monkeypatch.setattr(server, "check_database_connection", fake_check_database_connection)
     monkeypatch.setattr(server, "get_health_html", lambda data: f"ok-{data['status']}")
     response = await server.health_handler(None)
     assert response.status_code == 200
-    assert response.body == b"ok-healthy"
+    assert response.body == b"ok-degraded"
 
 
 @pytest.mark.asyncio
-async def test_health_json_handler_returns_json():
+async def test_health_json_handler_returns_json(monkeypatch):
     """Test health_json_handler returns JSON payload."""
+    async def fake_check_database_connection():
+        return False
+
+    monkeypatch.setattr(server, "check_database_connection", fake_check_database_connection)
     response = await server.health_json_handler(None)
+
     assert response.status_code == 200
     body = response.body.decode("utf-8")
-    assert '"status":"healthy"' in body
+    assert '"status":"degraded"' in body
+    assert '"database":"Database: Disconnected"' in body
 
 
 def test_build_http_app_adds_routes_and_cors(monkeypatch):

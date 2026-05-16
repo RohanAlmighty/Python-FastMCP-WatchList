@@ -8,6 +8,8 @@ from mcp.types import SamplingMessage, TextContent
 from mcp_server_watchlist.resources import get_all_movies
 from mcp_server_watchlist import db
 
+DB_ERROR_MESSAGE = "Database is currently unavailable. Please try again later."
+
 
 async def create_watchlist() -> str:
     """
@@ -24,10 +26,12 @@ async def create_watchlist() -> str:
         )
         if not existing:
             break
-    await db.execute(
+    created = await db.execute(
         "INSERT INTO watchlists (coolname) VALUES (:coolname)",
         {"coolname": coolname},
     )
+    if not created:
+        return DB_ERROR_MESSAGE
     return coolname
 
 
@@ -145,10 +149,12 @@ async def add_movie(watchlist_key: str, title: str, year: int) -> str:
     watchlist_id = await db.get_watchlist_id(watchlist_key)
     if watchlist_id is None:
         return f"Watchlist not found: '{watchlist_key}'. Use create_watchlist to create it first."
-    await db.execute(
+    inserted = await db.execute(
         "INSERT INTO watchlist (watchlist_id, title, year) VALUES (:wid, :title, :year)",
         {"wid": watchlist_id, "title": title, "year": year},
     )
+    if not inserted:
+        return DB_ERROR_MESSAGE
     return (
         f"Added: Title: {title}, Year: {year}, "
         f"Rating: N/A to watchlist '{watchlist_key}'."
@@ -176,11 +182,13 @@ async def _mark_watched_with_rating(watchlist_key: str, title: str, rating: floa
     )
     if not row:
         return f"Movie not found in watchlist: Title: {title}"
-    await db.execute(
+    updated = await db.execute(
         "UPDATE watchlist SET watched = 1, rating = :rating "
         "WHERE watchlist_id = :wid AND title = :title",
         {"rating": rating, "wid": watchlist_id, "title": title},
     )
+    if not updated:
+        return DB_ERROR_MESSAGE
     year = row[0]
     return (
         f"Marked as watched: Title: {title}, Year: {year}, "
@@ -255,11 +263,13 @@ async def unwatch_movie(watchlist_key: str, title: str) -> str:
     )
     if not row:
         return f"Movie not found in watchlist: Title: {title}"
-    await db.execute(
+    updated = await db.execute(
         "UPDATE watchlist SET watched = 0, rating = NULL "
         "WHERE watchlist_id = :wid AND title = :title",
         {"wid": watchlist_id, "title": title},
     )
+    if not updated:
+        return DB_ERROR_MESSAGE
     year = row[0]
     rating = row[1] if row[1] is not None else 'N/A'
     return (
@@ -288,10 +298,12 @@ async def delete_movie(watchlist_key: str, title: str) -> str:
     )
     if not row:
         return f"Movie not found in watchlist: Title: {title}"
-    await db.execute(
+    deleted = await db.execute(
         "DELETE FROM watchlist WHERE watchlist_id = :wid AND title = :title",
         {"wid": watchlist_id, "title": title},
     )
+    if not deleted:
+        return DB_ERROR_MESSAGE
     year = row[0]
     rating = row[1] if row[1] is not None else 'N/A'
     return (

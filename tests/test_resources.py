@@ -83,6 +83,28 @@ async def test_get_all_movies_unknown_watchlist(tmp_path):
     assert result == ["Watchlist not found: 'missing-list'."]
 
 
+@pytest.mark.asyncio
+async def test_get_unwatched_movies_unknown_watchlist(tmp_path):
+    """Test unwatched endpoint returns not-found message for unknown watchlist."""
+    db.DB_PATH = str(tmp_path / "test_watchlist.db")
+    await db.init_db()
+
+    result = await resources.get_unwatched_movies("missing-list")
+
+    assert result == ["Watchlist not found: 'missing-list'."]
+
+
+@pytest.mark.asyncio
+async def test_get_watched_movies_unknown_watchlist(tmp_path):
+    """Test watched endpoint returns not-found message for unknown watchlist."""
+    db.DB_PATH = str(tmp_path / "test_watchlist.db")
+    await db.init_db()
+
+    result = await resources.get_watched_movies("missing-list")
+
+    assert result == ["Watchlist not found: 'missing-list'."]
+
+
 def test_format_movie_row_variants():
     """Test formatting of movie row variants."""
     row = ("TitleA", 2020, 1, 7.5)

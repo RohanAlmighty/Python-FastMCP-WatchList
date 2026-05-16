@@ -3,13 +3,14 @@
 
 import os
 import asyncio
+import logging
 import uvicorn
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, JSONResponse
 from starlette.routing import Route
 
 from mcp.server.fastmcp import FastMCP
-from mcp_server_watchlist.db import init_db
+from mcp_server_watchlist.db import check_database_connection, init_db
 from mcp_server_watchlist.templates import get_health_html
 from mcp_server_watchlist.prompts import (
     prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched, prompt_show_watchlist
@@ -33,6 +34,7 @@ from mcp_server_watchlist.tools import (
 HOST = str(os.environ.get("HOST", "127.0.0.1"))
 PORT = int(os.environ.get("PORT", 8000))
 mcp = FastMCP("Movie Watchlist MCP Server", host=HOST, port=PORT)
+logger = logging.getLogger(__name__)
 
 
 def _is_enabled(env_var: str, default: str = "true") -> bool:
@@ -42,8 +44,13 @@ def _is_enabled(env_var: str, default: str = "true") -> bool:
 
 def setup_server():
     """Initialize the server, database, and register all tools, resources, and prompts."""
-    # Ensure async DB initialization
-    asyncio.run(init_db())
+    # Ensure async DB initialization but never crash startup on DB failure.
+    try:
+        db_initialized = bool(asyncio.run(init_db()))
+        if not db_initialized:
+            logger.warning("Database initialization failed; server will continue in degraded mode")
+    except Exception:
+        logger.exception("Database initialization crashed unexpectedly")
 
     # Register tool functions
     mcp.tool()(create_watchlist)
@@ -78,11 +85,15 @@ def setup_server():
     mcp.prompt()(prompt_show_watchlist)
 
 
-def get_health_data():
+def get_health_data(db_connected: bool):
     """Return health check data."""
+    db_status = "Database: Connected" if db_connected else "Database: Disconnected"
+    status = "healthy" if db_connected else "degraded"
     return {
-        "status": "healthy",
+        "status": status,
         "service": "Movie Watchlist MCP Server",
+        "database": db_status,
+        "database_connected": db_connected,
         "tools": [
             "tools/create_watchlist",
             "tools/show_watchlist",
@@ -110,13 +121,15 @@ def get_health_data():
 
 async def health_handler(request):
     """Handle health check requests (returns HTML)."""
-    data = get_health_data()
+    db_connected = await check_database_connection()
+    data = get_health_data(db_connected=db_connected)
     return HTMLResponse(get_health_html(data))
 
 
 async def health_json_handler(request):
     """Handle health check API requests (returns JSON)."""
-    return JSONResponse(get_health_data())
+    db_connected = await check_database_connection()
+    return JSONResponse(get_health_data(db_connected=db_connected))
 
 
 def build_http_app():

@@ -47,7 +47,9 @@ Tools refer to a watchlist using `watchlist_key` (the generated coolname).
 ### Database Connectivity
 
 - Default database: local SQLite (`watchlist.db`)
-- Remote databases supported via `DATABASE_URL`
+- Remote databases supported via `DATABASE_URL` (preferred) and `DB_URL` (fallback alias)
+- Precedence: if both are set, `DATABASE_URL` is used.
+- Invalid configured URLs automatically fall back to local SQLite.
 - Supported URL styles:
   - `postgresql://user:[REDACTED_SQL_PASSWORD_1]@host:5432/dbname`
   - `mysql://user:[REDACTED_SQL_PASSWORD_1]@host:3306/dbname`
@@ -190,8 +192,10 @@ How to use MCP Inspector:
 
 The server provides lightweight health check endpoints to verify it is running and see available capabilities:
 
-- **`/health`** - Returns a styled HTML dashboard displaying server status, all available tools, prompts, and resources. Visit in your browser at `http://localhost:8000/health`.
-- **`/health/json`** - Returns a JSON response with server status and complete list of tools, prompts, and resources. Useful for monitoring and automated checks.
+- **`/health`** - Returns a styled HTML dashboard displaying server status, database connectivity, and all available tools, prompts, and resources. Visit in your browser at `http://localhost:8000/health`.
+- **`/health/json`** - Returns JSON with status (`healthy` or `degraded`), database details (`database`, `database_connected`), and complete lists of tools, prompts, and resources. Useful for monitoring and automated checks.
+
+If the database is unavailable, the server still starts and reports a degraded health status.
 
 The HTML health page is packaged with the application and loaded from package resources, so it works in local editable mode and installed CLI mode.
 
@@ -281,7 +285,7 @@ mcp-server-watchlist
 
 ### Setting the database URL
 
-Set `DATABASE_URL` before running the tool:
+Set `DATABASE_URL` before running the tool (or `DB_URL` as a fallback alias):
 
 ```bash
 # Use SQLite (default, relative to current directory)
@@ -327,6 +331,8 @@ $env:DATABASE_URL = "sqlite:///C:/path/to/watchlist.db"
 ```
 
 If `DATABASE_URL` is not set, the tool defaults to a local SQLite file named `watchlist.db` in the current directory.
+
+If a configured value is invalid (for example, a plain filename like `watchlist.db`), the server falls back to the default local SQLite URL.
 
 ### Re-resolving dependencies safely
 
