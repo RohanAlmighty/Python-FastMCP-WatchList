@@ -9,7 +9,7 @@ This project implements a Movie Watchlist Model Context Protocol (MCP) server us
 
 Watch the project in action:
 
-[![Demo Video](https://img.youtube.com/vi/zMOPd2BnTOY/0.jpg)](https://www.youtube.com/watch?v=zMOPd2BnTOY)
+[![Demo Video](https://img.youtube.com/vi/bC9ybRbxmMA/0.jpg)](https://www.youtube.com/watch?v=bC9ybRbxmMA)
 
 ## Features
 
