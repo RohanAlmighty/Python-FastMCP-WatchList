@@ -30,7 +30,13 @@ def get_engine():
     if _engine is None:
         url = _resolve_database_url()
         if url.startswith("sqlite+"):
-            _engine = create_async_engine(url, connect_args={})
+            _engine = create_async_engine(
+                url,
+                connect_args={},
+                pool_size=1,
+                max_overflow=0,
+                echo=False,
+            )
         else:
             parsed = urlparse(url)
             params = parse_qs(parsed.query, keep_blank_values=True)
@@ -41,7 +47,14 @@ def get_engine():
             connect_args: dict[str, Any] = {}
             if sslmode in ("require", "verify-ca", "verify-full"):
                 connect_args["ssl"] = True
-            _engine = create_async_engine(url, connect_args=connect_args)
+            _engine = create_async_engine(
+                url,
+                connect_args=connect_args,
+                pool_size=10,
+                max_overflow=20,
+                echo=False,
+                pool_pre_ping=True,
+            )
     return _engine
 
 
@@ -209,14 +222,17 @@ async def check_database_connection() -> bool:
     Note:
         Used for health checks; returns False on any exception.
     """
+    session = None
     try:
         session = await get_session()
-        async with session:
-            result = await session.execute(select(1))
-            return result.scalar() == 1
+        result = await session.execute(select(1))
+        return result.scalar() == 1
     except Exception:
         logger.exception("Database read failed (check_database_connection)")
         return False
+    finally:
+        if session is not None:
+            await session.close()
 
 
 async def get_watchlist_id(session: AsyncSession, coolname: str) -> int | None:

@@ -21,7 +21,7 @@ async def get_movie(watchlist_key: str, title: str) -> str:
         Returns movie details if found, otherwise returns error message.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await db.get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return f"Watchlist not found: '{watchlist_key}'."
@@ -35,6 +35,8 @@ async def get_movie(watchlist_key: str, title: str) -> str:
         if row:
             return format_movie_row((row.title, row.year, row.watched, row.rating))
         return "Movie not found in watchlist."
+    finally:
+        await session.close()
 
 
 async def get_all_movies(watchlist_key: str) -> List[str]:
@@ -48,7 +50,7 @@ async def get_all_movies(watchlist_key: str) -> List[str]:
         Returns list of formatted movie entries or error message.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await db.get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return [f"Watchlist not found: '{watchlist_key}'."]
@@ -60,6 +62,8 @@ async def get_all_movies(watchlist_key: str) -> List[str]:
             format_movie_row((row.title, row.year, row.watched, row.rating))
             for row in rows
         ]
+    finally:
+        await session.close()
 
 
 async def get_unwatched_movies(watchlist_key: str) -> List[str]:
@@ -73,7 +77,7 @@ async def get_unwatched_movies(watchlist_key: str) -> List[str]:
         Returns list of unwatched movie entries or error message.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await db.get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return [f"Watchlist not found: '{watchlist_key}'."]
@@ -85,6 +89,8 @@ async def get_unwatched_movies(watchlist_key: str) -> List[str]:
             format_movie_row((row.title, row.year, row.watched, row.rating))
             for row in rows
         ]
+    finally:
+        await session.close()
 
 
 async def get_watched_movies(watchlist_key: str) -> List[str]:
@@ -98,7 +104,7 @@ async def get_watched_movies(watchlist_key: str) -> List[str]:
         Returns list of watched movie entries or error message.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await db.get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return [f"Watchlist not found: '{watchlist_key}'."]
@@ -110,6 +116,8 @@ async def get_watched_movies(watchlist_key: str) -> List[str]:
             format_movie_row((row.title, row.year, row.watched, row.rating))
             for row in rows
         ]
+    finally:
+        await session.close()
 
 
 def format_movie_row(row) -> str:
