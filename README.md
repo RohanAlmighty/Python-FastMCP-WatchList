@@ -98,6 +98,12 @@ export ENABLE_ELICITATION=true
 # true (default) -> summarize_watchlist(watchlist_key, ctx) uses LLM sampling
 # false -> summarize_watchlist(watchlist_key) returns deterministic local summary
 export ENABLE_LLM_SAMPLING=true
+
+# Comma-separated list of allowed origins for CORS (default: "*")
+# Use this to restrict access to specific origins (e.g., browser-based MCP Inspector)
+export CORS_ALLOW_ORIGINS="*"
+# Example for specific origins:
+# export CORS_ALLOW_ORIGINS="http://localhost:5173,https://inspector.example.com"
 ```
 
 ## Requirements
@@ -192,12 +198,24 @@ How to use MCP Inspector:
 
 The server provides lightweight health check endpoints to verify it is running and see available capabilities:
 
+- **`/mcp`** - Main MCP protocol endpoint. Used by MCP clients and the MCP Inspector to communicate with the server.
 - **`/health`** - Returns a styled HTML dashboard displaying server status, database connectivity, and all available tools, prompts, and resources. Visit in your browser at `http://localhost:8000/health`.
 - **`/health/json`** - Returns JSON with status (`healthy` or `degraded`), database details (`database`, `database_connected`), and complete lists of tools, prompts, and resources. Useful for monitoring and automated checks.
 
 If the database is unavailable, the server still starts and reports a degraded health status.
 
 The HTML health page is packaged with the application and loaded from package resources, so it works in local editable mode and installed CLI mode.
+
+#### CORS Configuration
+
+By default, the `/mcp` endpoint allows requests from all origins (`*`). To restrict access to specific origins (for example, when running a browser-based MCP Inspector on a different host):
+
+```bash
+export CORS_ALLOW_ORIGINS="http://localhost:5173,https://inspector.example.com"
+mcp-server-watchlist
+```
+
+The server adds appropriate CORS headers to `/mcp` requests (GET, POST, DELETE, OPTIONS allowed).
 
 Example curl commands:
 
