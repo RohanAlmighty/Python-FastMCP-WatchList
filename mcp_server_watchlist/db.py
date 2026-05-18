@@ -232,6 +232,7 @@ async def check_database_connection() -> bool:
         return False
     finally:
         if session is not None:
+            await session.rollback()
             await session.close()
 
 
