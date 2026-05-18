@@ -29,7 +29,7 @@ async def create_watchlist() -> str:
         Returns the generated coolname (e.g. 'silly-orange-duck') to use in other tools.
     """
     session = await get_session()
-    async with session:
+    try:
         while True:
             coolname = generate_slug()
             existing_id = await get_watchlist_id(session, coolname)
@@ -43,6 +43,8 @@ async def create_watchlist() -> str:
             await session.rollback()
             return DB_ERROR_MESSAGE
         return coolname
+    finally:
+        await session.close()
 
 
 def _build_watchlist_overview(movies: list[str]) -> str:
@@ -161,7 +163,7 @@ async def add_movie(watchlist_key: str, title: str, year: int) -> str:
         New movies are added as unwatched with rating set to N/A.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return f"Watchlist not found: '{watchlist_key}'. Use create_watchlist to create it first."
@@ -178,6 +180,8 @@ async def add_movie(watchlist_key: str, title: str, year: int) -> str:
             f"Added: Title: {title}, Year: {year}, "
             f"Rating: N/A to watchlist '{watchlist_key}'."
         )
+    finally:
+        await session.close()
 
 
 async def _mark_watched_with_rating(
@@ -195,7 +199,7 @@ async def _mark_watched_with_rating(
         This helper is shared by elicitation and direct-rating tool variants.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return f"Watchlist not found: '{watchlist_key}'."
@@ -217,6 +221,8 @@ async def _mark_watched_with_rating(
             f"Marked as watched: Title: {title}, Year: {year}, "
             f"Rating: {rating if rating is not None else 'N/A'}"
         )
+    finally:
+        await session.close()
 
 
 async def mark_watched_with_elicitation(
@@ -235,7 +241,7 @@ async def mark_watched_with_elicitation(
         does not accept rating as a direct tool argument.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return f"Watchlist not found: '{watchlist_key}'."
@@ -245,6 +251,8 @@ async def mark_watched_with_elicitation(
         movie = result.scalars().first()
         if not movie:
             return f"Movie not found in watchlist: Title: {title}"
+
+        # Elicit rating (don't hold DB session during long-running elicit call)
         rating = None
         result_elicit = await ctx.elicit(
             "Great! Please provide your rating.", RatingInput
@@ -255,7 +263,22 @@ async def mark_watched_with_elicitation(
             accepted_rating = getattr(result_elicit.data, "rating", None)
             if accepted_rating is not None:
                 rating = accepted_rating
-        return await _mark_watched_with_rating(watchlist_key, title, rating)
+
+        # Mark as watched with the collected rating
+        movie.watched = 1
+        movie.rating = rating
+        try:
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            return DB_ERROR_MESSAGE
+        year = movie.year
+        return (
+            f"Marked as watched: Title: {title}, Year: {year}, "
+            f"Rating: {rating if rating is not None else 'N/A'}"
+        )
+    finally:
+        await session.close()
 
 
 async def mark_watched_with_rating(
@@ -288,7 +311,7 @@ async def unwatch_movie(watchlist_key: str, title: str) -> str:
         present, remove it before calling.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return f"Watchlist not found: '{watchlist_key}'."
@@ -308,6 +331,8 @@ async def unwatch_movie(watchlist_key: str, title: str) -> str:
         year = movie.year
         rating = "N/A"
         return f"Marked as unwatched: Title: {title}, Year: {year}, Rating: {rating}"
+    finally:
+        await session.close()
 
 
 async def delete_movie(watchlist_key: str, title: str) -> str:
@@ -323,7 +348,7 @@ async def delete_movie(watchlist_key: str, title: str) -> str:
         present, remove it before calling.
     """
     session = await get_session()
-    async with session:
+    try:
         watchlist_id = await get_watchlist_id(session, watchlist_key)
         if watchlist_id is None:
             return f"Watchlist not found: '{watchlist_key}'."
@@ -346,3 +371,5 @@ async def delete_movie(watchlist_key: str, title: str) -> str:
             f"Deleted: Title: {title}, Year: {year}, "
             f"Rating: {rating} from watchlist '{watchlist_key}'."
         )
+    finally:
+        await session.close()

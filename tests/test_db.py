@@ -124,7 +124,7 @@ def test_make_engine_strips_sslmode_and_sets_ssl(monkeypatch):
     """Test _make_engine maps sslmode to connect_args and removes sslmode query param."""
     captured = {}
 
-    def fake_create_async_engine(url, connect_args=None):
+    def fake_create_async_engine(url, connect_args=None, **kwargs):
         captured["url"] = url
         captured["connect_args"] = connect_args
 
@@ -150,7 +150,7 @@ def test_make_engine_without_sslmode_does_not_set_ssl(monkeypatch, reset_db_engi
     """Test _make_engine leaves connect_args empty when sslmode is not present."""
     captured = {}
 
-    def fake_create_async_engine(url, connect_args=None):
+    def fake_create_async_engine(url, connect_args=None, **kwargs):
         captured["url"] = url
         captured["connect_args"] = connect_args
 
@@ -174,7 +174,7 @@ def test_make_engine_invalid_configured_url_falls_back_to_sqlite(
     """Test _make_engine uses local SQLite when configured URL is invalid."""
     captured = {}
 
-    def fake_create_async_engine(url, connect_args=None):
+    def fake_create_async_engine(url, connect_args=None, **kwargs):
         captured["url"] = url
         captured["connect_args"] = connect_args
 
