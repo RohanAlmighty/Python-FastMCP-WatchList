@@ -36,6 +36,7 @@ async def get_movie(watchlist_key: str, title: str) -> str:
             return format_movie_row((row.title, row.year, row.watched, row.rating))
         return "Movie not found in watchlist."
     finally:
+        await session.rollback()
         await session.close()
 
 
@@ -63,6 +64,7 @@ async def get_all_movies(watchlist_key: str) -> List[str]:
             for row in rows
         ]
     finally:
+        await session.rollback()
         await session.close()
 
 
@@ -90,6 +92,7 @@ async def get_unwatched_movies(watchlist_key: str) -> List[str]:
             for row in rows
         ]
     finally:
+        await session.rollback()
         await session.close()
 
 
@@ -117,6 +120,7 @@ async def get_watched_movies(watchlist_key: str) -> List[str]:
             for row in rows
         ]
     finally:
+        await session.rollback()
         await session.close()
 
 

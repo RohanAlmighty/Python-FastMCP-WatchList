@@ -44,6 +44,7 @@ async def create_watchlist() -> str:
             return DB_ERROR_MESSAGE
         return coolname
     finally:
+        await session.rollback()
         await session.close()
 
 
@@ -181,6 +182,7 @@ async def add_movie(watchlist_key: str, title: str, year: int) -> str:
             f"Rating: N/A to watchlist '{watchlist_key}'."
         )
     finally:
+        await session.rollback()
         await session.close()
 
 
@@ -222,6 +224,7 @@ async def _mark_watched_with_rating(
             f"Rating: {rating if rating is not None else 'N/A'}"
         )
     finally:
+        await session.rollback()
         await session.close()
 
 
@@ -278,6 +281,7 @@ async def mark_watched_with_elicitation(
             f"Rating: {rating if rating is not None else 'N/A'}"
         )
     finally:
+        await session.rollback()
         await session.close()
 
 
