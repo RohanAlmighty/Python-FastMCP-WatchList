@@ -142,10 +142,13 @@ def test_setup_server_does_not_crash_when_init_db_fails(monkeypatch):
 @pytest.mark.asyncio
 async def test_health_handler_returns_html(monkeypatch):
     """Test health_handler renders HTML using template data."""
+
     async def fake_check_database_connection():
         return False
 
-    monkeypatch.setattr(server, "check_database_connection", fake_check_database_connection)
+    monkeypatch.setattr(
+        server, "check_database_connection", fake_check_database_connection
+    )
     monkeypatch.setattr(server, "get_health_html", lambda data: f"ok-{data['status']}")
     response = await server.health_handler(None)
     assert response.status_code == 200
@@ -155,10 +158,13 @@ async def test_health_handler_returns_html(monkeypatch):
 @pytest.mark.asyncio
 async def test_health_json_handler_returns_json(monkeypatch):
     """Test health_json_handler returns JSON payload."""
+
     async def fake_check_database_connection():
         return False
 
-    monkeypatch.setattr(server, "check_database_connection", fake_check_database_connection)
+    monkeypatch.setattr(
+        server, "check_database_connection", fake_check_database_connection
+    )
     response = await server.health_json_handler(None)
 
     assert response.status_code == 200

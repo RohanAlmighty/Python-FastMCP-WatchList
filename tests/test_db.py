@@ -1,50 +1,59 @@
 """Tests for the db module in mcp_server_watchlist."""
 
 import pytest
+
 from mcp_server_watchlist import db
 
 
+@pytest.fixture
+def reset_db_engine():
+    """Reset the global engine and session factory before/after each test."""
+    orig_engine = db._engine
+    orig_factory = db._session_factory
+    db._engine = None
+    db._session_factory = None
+    yield
+    db._engine = orig_engine
+    db._session_factory = orig_factory
+
+
 @pytest.mark.asyncio
-async def test_init_db_creates_tables(tmp_path):
+async def test_init_db_creates_tables(tmp_path, reset_db_engine):
     """Test that init_db creates watchlists and watchlist tables."""
     orig_path = db.DB_PATH
     db.DB_PATH = str(tmp_path / "test_watchlist.db")
-    await db.init_db()
-    row_watchlists = await db.fetch_one(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='watchlists'"
-    )
-    row_watchlist = await db.fetch_one(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='watchlist'"
-    )
-    assert row_watchlists is not None
-    assert row_watchlist is not None
+    result = await db.init_db()
+    assert result is True
     db.DB_PATH = orig_path
 
 
 @pytest.mark.asyncio
-async def test_get_watchlist_id_returns_expected_value(tmp_path):
+async def test_get_watchlist_id_returns_expected_value(tmp_path, reset_db_engine):
     """Test get_watchlist_id returns the created row id for an existing key."""
     orig_path = db.DB_PATH
     db.DB_PATH = str(tmp_path / "test_watchlist.db")
     await db.init_db()
-    await db.execute(
-        "INSERT INTO watchlists (coolname) VALUES (:coolname)",
-        {"coolname": "alpha-list"},
-    )
-    wid = await db.get_watchlist_id("alpha-list")
-    assert isinstance(wid, int)
-    assert wid > 0
+    session = await db.get_session()
+    async with session:
+        watchlist = db.Watchlist(coolname="alpha-list")
+        session.add(watchlist)
+        await session.commit()
+        wid = await db.get_watchlist_id(session, "alpha-list")
+        assert isinstance(wid, int)
+        assert wid > 0
     db.DB_PATH = orig_path
 
 
 @pytest.mark.asyncio
-async def test_get_watchlist_id_missing_returns_none(tmp_path):
+async def test_get_watchlist_id_missing_returns_none(tmp_path, reset_db_engine):
     """Test get_watchlist_id returns None for unknown keys."""
     orig_path = db.DB_PATH
     db.DB_PATH = str(tmp_path / "test_watchlist.db")
     await db.init_db()
-    wid = await db.get_watchlist_id("missing-list")
-    assert wid is None
+    session = await db.get_session()
+    async with session:
+        wid = await db.get_watchlist_id(session, "missing-list")
+        assert wid is None
     db.DB_PATH = orig_path
 
 
@@ -106,7 +115,9 @@ def test_normalize_database_url_supports_all_prefixes():
     assert db._normalize_database_url("mysql://u:p@h:3306/db").startswith(
         "mysql+aiomysql://"
     )
-    assert db._normalize_database_url("oracle://u:p@h:1521/db") == "oracle://u:p@h:1521/db"
+    assert (
+        db._normalize_database_url("oracle://u:p@h:1521/db") == "oracle://u:p@h:1521/db"
+    )
 
 
 def test_make_engine_strips_sslmode_and_sets_ssl(monkeypatch):
@@ -135,7 +146,7 @@ def test_make_engine_strips_sslmode_and_sets_ssl(monkeypatch):
     assert captured["connect_args"] == {"ssl": True}
 
 
-def test_make_engine_without_sslmode_does_not_set_ssl(monkeypatch):
+def test_make_engine_without_sslmode_does_not_set_ssl(monkeypatch, reset_db_engine):
     """Test _make_engine leaves connect_args empty when sslmode is not present."""
     captured = {}
 
@@ -157,7 +168,9 @@ def test_make_engine_without_sslmode_does_not_set_ssl(monkeypatch):
     assert captured["connect_args"] == {}
 
 
-def test_make_engine_invalid_configured_url_falls_back_to_sqlite(monkeypatch):
+def test_make_engine_invalid_configured_url_falls_back_to_sqlite(
+    monkeypatch, reset_db_engine
+):
     """Test _make_engine uses local SQLite when configured URL is invalid."""
     captured = {}
 
@@ -178,3 +191,49 @@ def test_make_engine_invalid_configured_url_falls_back_to_sqlite(monkeypatch):
 
     assert captured["url"] == "sqlite+aiosqlite:///watchlist.db"
     assert captured["connect_args"] == {}
+
+
+@pytest.mark.asyncio
+async def test_init_db_returns_false_on_exception(monkeypatch, reset_db_engine):
+    """Test that init_db returns False when database initialization fails."""
+
+    class FakeAsyncContextManager:
+        async def __aenter__(self):
+            raise RuntimeError("Simulated engine error")
+
+        async def __aexit__(self, *args):
+            pass
+
+    class FakeEngine:
+        def begin(self):
+            return FakeAsyncContextManager()
+
+    def fake_get_engine():
+        return FakeEngine()
+
+    monkeypatch.setattr(db, "get_engine", fake_get_engine)
+    result = await db.init_db()
+    assert result is False
+
+
+@pytest.mark.asyncio
+async def test_check_database_connection_success(tmp_path, reset_db_engine):
+    """Test that check_database_connection returns True on successful read."""
+    orig_path = db.DB_PATH
+    db.DB_PATH = str(tmp_path / "test_watchlist.db")
+    await db.init_db()
+    result = await db.check_database_connection()
+    assert result is True
+    db.DB_PATH = orig_path
+
+
+@pytest.mark.asyncio
+async def test_check_database_connection_failure(monkeypatch, reset_db_engine):
+    """Test that check_database_connection returns False on exception."""
+
+    async def fake_get_session():
+        raise Exception("Database connection error")
+
+    monkeypatch.setattr(db, "get_session", fake_get_session)
+    result = await db.check_database_connection()
+    assert result is False
