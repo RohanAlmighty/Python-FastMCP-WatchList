@@ -1,23 +1,30 @@
-
 """MCP server setup and registration for the Movie Watchlist MCP Server."""
 
-import os
 import asyncio
 import logging
+import os
+
 import uvicorn
+from mcp.server.fastmcp import FastMCP
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import HTMLResponse, JSONResponse
 from starlette.routing import Route
 
-from mcp.server.fastmcp import FastMCP
 from mcp_server_watchlist.db import check_database_connection, init_db
-from mcp_server_watchlist.templates import get_health_html
 from mcp_server_watchlist.prompts import (
-    prompt_add_movie, prompt_unwatch_movie, prompt_delete_movie, prompt_mark_watched, prompt_show_watchlist
+    prompt_add_movie,
+    prompt_delete_movie,
+    prompt_mark_watched,
+    prompt_show_watchlist,
+    prompt_unwatch_movie,
 )
 from mcp_server_watchlist.resources import (
-	get_movie, get_all_movies, get_unwatched_movies, get_watched_movies
+    get_all_movies,
+    get_movie,
+    get_unwatched_movies,
+    get_watched_movies,
 )
+from mcp_server_watchlist.templates import get_health_html
 from mcp_server_watchlist.tools import (
     add_movie,
     create_watchlist,
@@ -38,17 +45,34 @@ logger = logging.getLogger(__name__)
 
 
 def _is_enabled(env_var: str, default: str = "true") -> bool:
-    """Read a boolean feature flag from environment variables."""
+    """
+    Read a boolean feature flag from environment variables.
+
+    Args:
+        env_var: The environment variable name.
+        default: Default value if env var is not set.
+
+    Note:
+        Returns True for '1', 'true', 'yes', 'y', 'on' (case-insensitive).
+    """
     raw = os.environ.get(env_var, default).strip().lower()
     return raw in {"1", "true", "yes", "y", "on"}
 
+
 def setup_server():
-    """Initialize the server, database, and register all tools, resources, and prompts."""
+    """
+    Initialize the server, database, and register all tools, resources, and prompts.
+
+    Note:
+        Handles database initialization gracefully; server continues in degraded mode on failure.
+    """
     # Ensure async DB initialization but never crash startup on DB failure.
     try:
         db_initialized = bool(asyncio.run(init_db()))
         if not db_initialized:
-            logger.warning("Database initialization failed; server will continue in degraded mode")
+            logger.warning(
+                "Database initialization failed; server will continue in degraded mode"
+            )
     except Exception:
         logger.exception("Database initialization crashed unexpectedly")
 
@@ -86,7 +110,15 @@ def setup_server():
 
 
 def get_health_data(db_connected: bool):
-    """Return health check data."""
+    """
+    Return health check data.
+
+    Args:
+        db_connected: Whether the database is currently connected.
+
+    Note:
+        Returns a dict with status, service info, and endpoint listings.
+    """
     db_status = "Database: Connected" if db_connected else "Database: Disconnected"
     status = "healthy" if db_connected else "degraded"
     return {
@@ -120,28 +152,53 @@ def get_health_data(db_connected: bool):
 
 
 async def health_handler(request):
-    """Handle health check requests (returns HTML)."""
+    """
+    Handle health check requests (returns HTML).
+
+    Args:
+        request: The HTTP request object.
+
+    Note:
+        Returns HTML-formatted health status page.
+    """
     db_connected = await check_database_connection()
     data = get_health_data(db_connected=db_connected)
     return HTMLResponse(get_health_html(data))
 
 
 async def health_json_handler(request):
-    """Handle health check API requests (returns JSON)."""
+    """
+    Handle health check API requests (returns JSON).
+
+    Args:
+        request: The HTTP request object.
+
+    Note:
+        Returns JSON-formatted health status for programmatic consumption.
+    """
     db_connected = await check_database_connection()
     return JSONResponse(get_health_data(db_connected=db_connected))
 
 
 def build_http_app():
-    """Build the ASGI app and add CORS support for browser-based MCP clients."""
+    """
+    Build the ASGI app and add CORS support for browser-based MCP clients.
+
+    Note:
+        Adds health check routes and configures CORS middleware.
+    """
     app = mcp.streamable_http_app()
 
     # Add health check routes
     app.router.routes.append(Route("/health", health_handler, methods=["GET"]))
-    app.router.routes.append(Route("/health/json", health_json_handler, methods=["GET"]))
+    app.router.routes.append(
+        Route("/health/json", health_json_handler, methods=["GET"])
+    )
 
     allow_origins_raw = os.environ.get("CORS_ALLOW_ORIGINS", "*")
-    allow_origins = [origin.strip() for origin in allow_origins_raw.split(",") if origin.strip()]
+    allow_origins = [
+        origin.strip() for origin in allow_origins_raw.split(",") if origin.strip()
+    ]
 
     app.add_middleware(
         CORSMiddleware,
@@ -154,11 +211,18 @@ def build_http_app():
     )
     return app
 
+
 def main():
-    """Entry point for running the MCP server."""
+    """
+    Entry point for running the MCP server.
+
+    Note:
+        Initializes server and starts uvicorn HTTP server.
+    """
     setup_server()
     app = build_http_app()
     uvicorn.run(app, host=HOST, port=PORT)
+
 
 if __name__ == "__main__":
     main()

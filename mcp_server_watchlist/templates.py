@@ -2,37 +2,51 @@
 
 from importlib import resources
 
+
 def _load_health_template() -> str:
-    """Load the health template from package data."""
+    """
+    Load the health template from package data.
+
+    Note:
+        Reads health.html from the templates directory.
+    """
     template = resources.files("mcp_server_watchlist").joinpath("templates/health.html")
     return template.read_text(encoding="utf-8")
 
 
 def get_health_html(data):
-    """Return a lightweight HTML page showing server health status.
-    
-    Loads the health.html template and renders it with the provided data.
-    
+    """
+    Return a lightweight HTML page showing server health status.
+
     Args:
-        data: Dict with keys: status, service, database, database_connected,
-            tools, prompts, resources
+        data: Dict with keys: status, service, database, database_connected, tools, prompts, resources.
+
+    Note:
+        Loads the health.html template and renders it with the provided data.
     """
     html_template = _load_health_template()
     status = data.get("status", "unknown").capitalize()
     database_status = data.get("database", "Disconnected")
     database_connected = bool(data.get("database_connected", False))
-    status_class = "status-healthy" if status.lower() == "healthy" else "status-degraded"
+    status_class = (
+        "status-healthy" if status.lower() == "healthy" else "status-degraded"
+    )
     status_icon = "✓" if status.lower() == "healthy" else "!"
     database_status_class = "db-connected" if database_connected else "db-disconnected"
-    
+
     # Render data into template
-    tools_html = "".join(f'<div class="item">{tool}</div>' for tool in data.get("tools", []))
-    prompts_html = "".join(f'<div class="item">{prompt}</div>' for prompt in data.get("prompts", []))
-    resources_html = "".join(f'<div class="item">{resource}</div>' for resource in data.get("resources", []))
-    
+    tools_html = "".join(
+        f'<div class="item">{tool}</div>' for tool in data.get("tools", [])
+    )
+    prompts_html = "".join(
+        f'<div class="item">{prompt}</div>' for prompt in data.get("prompts", [])
+    )
+    resources_html = "".join(
+        f'<div class="item">{resource}</div>' for resource in data.get("resources", [])
+    )
+
     return (
-        html_template
-        .replace("{status_icon}", status_icon)
+        html_template.replace("{status_icon}", status_icon)
         .replace("{status_text}", status)
         .replace("{status_class}", status_class)
         .replace("{database_status}", database_status)
